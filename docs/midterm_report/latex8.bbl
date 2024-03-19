@@ -1,3 +1,13 @@
-\begin{thebibliography}{}\setlength{\itemsep}{-1ex}\small
+\begin{thebibliography}{1}\setlength{\itemsep}{-1ex}\small
+
+\bibitem{gupta2022act}
+U.~Gupta, M.~Elgamal, G.~Hills, G.-Y. Wei, H.-H.~S. Lee, D.~Brooks, and C.-J. Wu.
+\newblock Act: designing sustainable computer systems with an architectural carbon modeling tool.
+\newblock In {\em Proceedings of the 49th Annual International Symposium on Computer Architecture}, ISCA '22, page 784–799, New York, NY, USA, 2022. Association for Computing Machinery.
+
+\bibitem{he2023hotcarbon}
+H.~Hè, M.~Friedman, and T.~Rekatsinas.
+\newblock Energat: Fine-grained energy attribution for multi-tenancy.
+\newblock In {\em Proceedings of the 2nd Workshop on Sustainable Computer Systems}, HotCarbon ’23. ACM, July 2023.
 
 \end{thebibliography}

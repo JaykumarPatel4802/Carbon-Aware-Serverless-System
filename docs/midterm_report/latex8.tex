@@ -31,6 +31,7 @@
 \author{Jaykumar Patel\\
 The University of Texas at Austin\\
 patel.jay4802@utexas.edu\\
+jnp2369\\
 \and
 Afnan Mir\\
 The University of Texas at Austin\\
@@ -47,33 +48,81 @@ nidhi.dubagunta@utexas.edu
 \thispagestyle{empty}
 
 \begin{abstract}
-   Sample Text
+   Serverless computing enables developers to build and deploy applications faster without having to worry about provisioning resources and managing infrastructure. Existing serverless computing systems utilize policies that govern how resources, such as the number of vCPUs and memory, are allocated for a function invocation, but these policies do not consider the carbon footprint of the resources. Furthermore, existing systems do not utilize dynamic frequency scaling (DFS), which scales the frequency that the vCPUs runs at. We propose introducing the frequency at which vCPUs run as a new resource to allocate per invocation. Our system will manage DFS, along with traditional resource allocation (vCPU) to meet service-level objectives (SLO) while minimizing the carbon footprint. Firstly, we will define how to measure carbon emissions. Then we perform a measurement study, which will involve running a variety of workloads on a variety of resource configurations and acquiring their resource usage, carbon emission, and performance in terms of duration. We also conduct a study to determine the carbon emission over the various stages of a function invocation. This will allow us to understand carbon emission during different stages of a serverless function’s lifecycle, how carbon emission varies with changes in vCPU, how carbon emission varies with different inputs to the same serverless function, and how carbon emission varies with dynamic frequency scaling (DVFS). Then, we will adapt OpenWhisk, an open source and serverless cloud platform, to incorporate Bayesian Optimization to drive a carbon-aware DFS and resource allocation model, where frequency to the vCPU will be considered as a resource along with vCPU. We will use this framework to investigate whether machine learning techniques are effective in driving carbon-aware decisions by evaluating our framework’s carbon emissions against OpenWhisk’s current policies. Further work may include creating a framework for the keep-alive policy and scheduling to further minimize carbon footprint. The ultimate goal of this project is to minimize the carbon footprint while meeting each invocation’s SLOs, which are tailored for the individual workloads and determined by metrics such as latency, throughput, total runtime, resulting cost, etc. Though our system should contribute to environmental sustainability, it must also consistently meet the specified operational criteria essential for their intended functions.
 \end{abstract}
 
 
 \section{Introduction}
-
+% Reduce the abstract, and move a lot of the detailed information here
 
 \section{Motivation}
-
+% We can include information about the impact of server centers on carbon emissions, and how vCPU and frequency plays a role.
 
 \section{Related Work}
+% Include CherryPick and Aquatope
 
-\section{Measurement Study}
+\begin{table*}[htbp]
+   \centering
+   \begin{tabular}{|c|c|}
+   \hline
+   \textbf{Parameter} & \textbf{Values} \\ \hline
+   Function Types & Float Matrix Multiplication, Image Processing, Video Processing, Encryption, Linpack \\ \hline
+   vCPU Count & 1, 2, 3, 5, 7, 10, 13, 16, 19, 22, 25, 28, 31 \\ \hline
+   vCPU Frequency (GHz) & 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2. 2.4 \\ \hline
+   \end{tabular}
+   \caption{Functions and Resource Configurations for Measurement Study}
+   \label{tab:mstudy1_configurations}
+\end{table*}
 
-\section{System Overview}
+\section{Measuring Carbon Emission}
 
 
-\section{Experimental Setup}
+Before we conduct the measurement study, we need to define how to measure carbon emissions. According to Gupta et al. \cite{gupta2022act}, the carbon footprint of a server can be calculated using the following formula where $OP_{CF}$ is the operational carbon footprint, $CI_{use}$ is the carbon intensity of the energy source, and $Energy$ is the operational energy:
+
+\begin{equation}
+   OP_{CF} = CI_{use} \times Energy
+\end{equation}
+
+The carbon intensity refers to how \textit{clean} the energy source is. For example, coal has a higher carbon intensity than solar. We assume that the energy source of the serverless system is constant, and therefore, the carbon intensity is constant. We can then use the operational energy as a proxy for the carbon footprint.
+
+\subsection{Measuring Energy}
+We first need a way to measure the energy consumption of a serverless function invocation. EnergAt \cite{he2023hotcarbon} is a tool that measures fine-grained energy consumption while taking into account NUMA effects. An EnergAt continuously samples a target container, where each sample returns energy readings over an at least 50ms interval. However, every target container for which we want to measure energy consumption must be instrumented with its own EnergAt process. This is not feasible the number of EnergAt processes and resource contention scales with the number of target containers.
+
+To mitigate this issue, we created EnergyLiteDaemon. EnergyLiteDaemon is a daemon that samples multiple target containers in a round-robin fashion. This allows us to measure energy consumption of multiple target containers with a single, light-weight, process. Due to the round-robin fashion, however, the sampling frequency per target container decreases as a function of the number of target containers. To solve this, we complete the following steps to interpolate the total energy consumption of a target container: 1. Compute the average power for every interval by dividing the energy of a sample by the duration of that sample. 2. Apply trapeziodal integration to compute the total energy consumption of a target container. 
+
+\subsection{Measurment Study}
+
+We conduct two measurement studies to answer the following questions: 1. How does energy vary with changes in vCPU and frequency allocation? 2. What is the energy consumption over the lifecycle of a serverless function invocaiton?
+
+To perform the measurement study, we use OpenWhisk, which is an open-source serverless platform, to run function invocations. We use EnergyLiteDaemon to measure the energy consumption of the function invocations.
+
+\subsection{Energy Variation with vCPU and Frequency Allocation}
+
+We run a variety of workloads on a variety of resource configurations. We collected the resource utilization, energy consumption, and performance in terms of duration. We then analyze the data to understand how energy consumption varies with changes in vCPU and frequency allocation. The resource configurations are shown in Table \ref{tab:mstudy1_configurations}.
+
+We analyzed the data to understand how energy consumption varies with changes in vCPU and frequency allocation. We found that for functions that are highly parallelizable, such as float matrix multiplication, energy consumption decreases with the number of vCPUs, since the function duration decreases drastically. For functions that are not parallelizable, such as encryption, vCPU allocation does not affect energy consumption. For both types of functions, energy consumption as a function of frequency displays a convex curve, where energy consumption decreases with frequency until a certain point, and then increases with frequency. This is because the energy consumption of a vCPU is proportional to the frequency at which it runs, but the duration of the function is inversely proportional to the frequency at which the vCPU runs.
+
+These trends support the idea that we can use machine learning to learn the relationship between vCPU, frequency, and energy consumption, and use this model to minimize energy consumption while meeting SLOs.
+
+\subsection{Energy Consumption Over the Lifecycle of a Serverless Function Invocation}
+
+% \section{Tentative System Overview}
 
 
-\section{Results}
+% \section{Experimental Setup}
 
 
-\section{Limitations and Next Steps}
+% \section{Results}
 
 
-\section{Conclusion}
+\section{Next Steps}
+
+\subsection{Machine Learning Model}
+
+\subsection{Adapting OpenWhisk}
+
+
+% \section{Conclusion}
 
 \bibliographystyle{latex8}
 \bibliography{latex8}
