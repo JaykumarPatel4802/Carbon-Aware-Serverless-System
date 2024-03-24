@@ -16,7 +16,7 @@
 \usepackage{algorithmic}
 \usepackage{adjustbox}
 \usepackage{enumitem}
-\usepackage{enumitem}
+\usepackage{float}
 
 %------------------------------------------------------------------------- 
 % take the % away on next line to produce the final camera-ready version 
@@ -72,7 +72,7 @@ nidhi.dubagunta@utexas.edu
    vCPU Count & 1, 2, 3, 5, 7, 10, 13, 16, 19, 22, 25, 28, 31 \\ \hline
    vCPU Frequency (GHz) & 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2. 2.4 \\ \hline
    \end{tabular}
-   \caption{Functions and Resource Configurations for Measurement Study}
+   \caption{Measurement Study Configurations -- Energy Variation with vCPU and Frequency Allocation}
    \label{tab:mstudy1_configurations}
 \end{table*}
 
@@ -96,6 +96,17 @@ To mitigate this issue, we created EnergyLiteDaemon. EnergyLiteDaemon is a daemo
 
 \textbf{Trapezoidal Integration:} Given a power-time scatter-plot, we compute the total energy consumption of a target container by performing trapezoidal integration. Essentially, all of the points in the power-time scatter-plot are connected by straight lines, and the area under the curve is calculated. This area is the total energy consumption of the target container. 
 
+A toy example of energy measurement using EnergAt and EnergyLiteDaemon is shown in Appendix \ref{appendix:energy_measurement}.
+
+Due to EnergyLiteDaemon's round-robin sampling approach, which reduces its overhead, it may not capture all energy readings for a container. Even with trapezoidal integration, the energy consumption will not be exact. To determine the accuracy of EnergyLiteDaemon, we ran 20 stress docker containers, with varying CPU usage and duration. Figure \ref{fig:EnergyLiteDaemon_Efficacy} shows the energy consumption of the containers as measured by EnergAt and EnergyLiteDaemon. The absolute percentage error of EnergyLiteDaemon is less than 15\%, which is acceptable for our purposes.
+
+\begin{figure}[ht]
+   \centering
+   \includegraphics[width=0.45\textwidth]{imgs/EnergyLiteDaemon_Efficacy.png}
+   \caption{EnergyReadings of EnergAt and EnergyLiteDaemon for 20 stress docker containers.}
+   \label{fig:EnergyLiteDaemon_Efficacy}
+ \end{figure}
+
 \section{Measurment Study}
 
 We conduct two measurement studies to answer the following questions: 1. How does energy vary with changes in vCPU and frequency allocation? 2. What is the energy consumption over the lifecycle of a serverless function invocaiton?
@@ -104,7 +115,7 @@ To perform the measurement study, we use OpenWhisk, which is an open-source serv
 
 \subsection{Energy Variation with vCPU and Frequency Allocation}
 
-We run a variety of workloads on a variety of resource configurations. We collected the resource utilization, energy consumption, and performance in terms of duration. We then analyze the data to understand how energy consumption varies with changes in vCPU and frequency allocation. The resource configurations are shown in Table \ref{tab:mstudy1_configurations}.
+We ran a variety of workloads on a variety of vCPU and frequency configurations. We collected the vCPU utilization, energy consumption, and performance in terms of duration. The resource configurations are shown in Table \ref{tab:mstudy1_configurations}.
 
 We analyzed the data to understand how energy consumption varies with changes in vCPU and frequency allocation. We found that for functions that are highly parallelizable, such as float matrix multiplication, energy consumption decreases with the number of vCPUs, since the function duration decreases drastically. For functions that are not parallelizable, such as encryption, vCPU allocation does not affect energy consumption. For both types of functions, energy consumption as a function of frequency displays a convex curve, where energy consumption decreases with frequency until a certain point, and then increases with frequency. This is because the energy consumption of a vCPU is proportional to the frequency at which it runs, but the duration of the function is inversely proportional to the frequency at which the vCPU runs.
 
@@ -127,10 +138,67 @@ These trends support the idea that we can use machine learning to learn the rela
 
 \subsection{Adapting OpenWhisk}
 
+\begin{figure}[ht]
+   \centering
+   \includegraphics[width=0.45\textwidth]{imgs/Adapted_OW_System_Overview.png}
+   \caption{Adapted OpenWhisk System Overview}
+   \label{fig:adapted_ow_system_overview}
+ \end{figure}
+
+We will adapt OpenWhisk to incorporate Bayesian Optimization to drive a carbon-aware DFS and vCPU allocation model. Figure \ref{fig:adapted_ow_system_overview} shows the system overview.
+
+The Bayesian Optimization model will be contained in a shim layer, called the EnergyModel. Whenever a user invokes a function, the EnergyModel is be used to determine the optimal vCPU and frequency allocation (using Bayesian Optimization). The EnergyModel will be trained on the data collected from the measurement study.
+
+We will also create a custom scheduler, called EnergyScheduler, that will replace OpenWhisk's current scheduler. The EnergyScheduler will use the output of EnergyModel to determine the optimal vCPU to allocate for a function invocation. There will also be multiple invoker nodes, each running at a different frequency. The EnergyScheduler will send the request to the invoker that is running at the frequency predicted by EnergyModel.
+
 
 % \section{Conclusion}
 
 \bibliographystyle{latex8}
 \bibliography{latex8}
+
+\appendix
+\section{Appendix}
+\subsection{Energy Measurement}
+\label{appendix:energy_measurement}
+A toy example of the energy measurement using EnergAt and EnergyLiteDaemon is shown in Figure \ref{fig:energy_toy_example}. Figure \ref{fig:a} shows the energy readings of EnergAt. Figure \ref{fig:b} shows the energy readings of EnergyLiteDaemon for one container. EnergyLiteDaemon doesn't capture all energy readings for a container due to the round-robin sampling approach. Figure \ref{fig:c} shows EnergyLiteDaemon's power calculation of of each energy sample. Figure \ref{fig:d} shows the energy interpolation of EnergyLiteDaemon using trapezoidal integration.
+
+\begin{figure*}[ht] % Note the use of figure* instead of figure
+   \centering
+   \begin{subfigure}[b]{0.24\textwidth} % Adjusted width to fit across two columns
+         \centering
+         \includegraphics[width=\textwidth]{imgs/EnergAt_Energy.png}
+         \caption{}
+         \label{fig:a}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.24\textwidth} % Adjusted width
+         \centering
+         \includegraphics[width=\textwidth]{imgs/EnergyLiteDaemon_Energy_1.png}
+         \caption{}
+         \label{fig:b}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.24\textwidth} % Adjusted width
+         \centering
+         \includegraphics[width=\textwidth]{imgs/EnergyLiteDaemon_Energy_2.png}
+         \caption{}
+         \label{fig:c}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.24\textwidth} % Adjusted width
+         \centering
+         \includegraphics[width=\textwidth]{imgs/EnergyLiteDaemon_Energy_3.png}
+         \caption{}
+         \label{fig:d}
+   \end{subfigure}
+   
+   \caption{Toy example of energy measurement using EnergAt and EnergyLiteDaemon. (a) EnergAt energy readings. (b) EnergyLiteDaemon energy readings for one container. (c) EnergyLiteDaemon power calculation (red dots). (d) EnergyLiteDaemon energy interpolation using trapezoidal integration.}
+   \label{fig:energy_toy_example}
+\end{figure*}
+
+\subsection{Energy Variation with vCPU and Frequency Allocation}
+\label{appendix:energy_variation_vcpu_frequency}
+
 
 \end{document}
