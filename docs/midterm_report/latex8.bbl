@@ -5,6 +5,11 @@ O.~Alipourfard, H.~H. Liu, J.~Chen, S.~Venkataraman, M.~Yu, and M.~Zhang.
 \newblock {CherryPick}: Adaptively unearthing the best cloud configurations for big data analytics.
 \newblock In {\em 14th USENIX Symposium on Networked Systems Design and Implementation (NSDI 17)}, pages 469--482, Boston, MA, Mar. 2017. USENIX Association.
 
+\bibitem{bibal2023acm}
+M.~Bilal, M.~Canini, R.~Fonseca, and R.~Rodrigues.
+\newblock With great freedom comes great opportunity: Rethinking resource allocation for serverless functions.
+\newblock In {\em Proceedings of the Eighteenth European Conference on Computer Systems}, EuroSys '23, page 381–397, New York, NY, USA, 2023. Association for Computing Machinery.
+
 \bibitem{GreenCourier}
 M.~Chadha, T.~Subramanian, E.~Arima, M.~Gerndt, M.~Schulz, and O.~Abboud.
 \newblock Greencourier: Carbon-aware scheduling for serverless functions.
