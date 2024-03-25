@@ -118,7 +118,7 @@ To perform the measurement study, we use OpenWhisk, which is an open-source serv
 
 We ran a variety of workloads on a variety of vCPU and frequency configurations. We collected the vCPU utilization, energy consumption, and performance in terms of duration. The resource configurations are shown in Table \ref{tab:mstudy1_configurations}.
 
-We analyzed the data to understand how energy consumption varies with changes in vCPU and frequency allocation. We found that for functions that are highly parallelizable, such as float matrix multiplication, energy consumption decreases with the number of vCPUs, since the function duration decreases drastically. For functions that are not parallelizable, such as encryption, vCPU allocation does not affect energy consumption. For both types of functions, energy consumption as a function of frequency displays a convex curve, where energy consumption decreases with frequency until a certain point, and then increases with frequency. This is because the energy consumption of a vCPU is proportional to the frequency at which it runs, but the duration of the function is inversely proportional to the frequency at which the vCPU runs.
+We analyzed the data to understand how energy consumption varies with changes in vCPU and frequency allocation. We found that for functions that are highly parallelizable, such as float matrix multiplication, energy consumption decreases with the number of vCPUs, since the function duration decreases drastically. For functions that are not parallelizable, such as encryption, vCPU allocation does not affect energy consumption. For both types of functions, energy consumption as a function of frequency displays a convex curve, where energy consumption decreases with frequency until a certain point, and then increases with frequency. This is because the energy consumption of a vCPU is proportional to the frequency at which it runs, but the duration of the function is inversely proportional to the frequency at which the vCPU runs. More details are in Appendix \ref{appendix:energy_variation_vcpu_frequency}.
 
 These trends support the idea that we can use machine learning to learn the relationship between vCPU, frequency, and energy consumption, and use this model to minimize energy consumption while meeting SLOs.
 
@@ -200,6 +200,130 @@ A toy example of the energy measurement using EnergAt and EnergyLiteDaemon is sh
 
 \subsection{Energy Variation with vCPU and Frequency Allocation}
 \label{appendix:energy_variation_vcpu_frequency}
+The energy usage, duration, and CPU usage for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation are shown in Figure \ref{fig:cpu_stats}. For Float Matrix Multiplication, energy usage initially decreases and then flat-lines as the vCPU allocation increases. This is because matrix multiplication is highly parallelizable and results in higher vCPU utilization, leading to a decrease in duration and energy usage. For Image Processing, energy usage has no apparent correlation with vCPU allocation. This is because most of image processing tasks are non-parallelizable. For Encryption, energy usage, duration, and vCPU utilization do not change with vCPU allocation. This is because encryption is non-parallelizable and does not benefit from additional vCPUs.
 
+The energy usage and duration for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU frequency are shown in Figure \ref{fig:freq_stats}. For all functions, energy usage displays a convex curve as a function of frequency. This is because the energy consumption of a vCPU is proportional to the frequency at which it runs, but the duration of the function is inversely proportional to the frequency at which the vCPU runs. Therefore, energy usage decreases with frequency until a certain point, and then increases with frequency.
+
+\begin{figure*}[ht]
+   \centering
+   % First row of plots
+   \textbf{Float Matrix Multiplication}\par\medskip
+   \begin{subfigure}[b]{0.3\textwidth}
+     \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/floatmatmul/CPU_Energy.png}
+     \caption{}
+     \label{fig:plot1}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/floatmatmul/CPU_Duration.png}
+     \caption{}
+     \label{fig:plot2}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/floatmatmul/CPU_CPUUsage.png}
+     \caption{}
+     \label{fig:plot3}
+   \end{subfigure}
+   % \caption*{Float Matrix Multiplication}
+   
+   % Second row of plots
+   \textbf{Image Process}\par\medskip
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/imageprocess/CPU_Energy.png}
+     \caption{}
+     \label{fig:plot4}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/imageprocess/CPU_Duration.png}
+     \caption{}
+     \label{fig:plot5}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/imageprocess/CPU_CPUUsage.png}
+     \caption{}
+     \label{fig:plot6}
+   \end{subfigure}
+   % \caption*{Image Process}
+   
+   % Third row of plots
+   \textbf{Encryption}\par\medskip
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/encryption/CPU_Energy.png}
+     \caption{}
+     \label{fig:plot7}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/encryption/CPU_Duration.png}
+     \caption{}
+     \label{fig:plot8}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/encryption/CPU_CPUUsage.png}
+     \caption{}
+     \label{fig:plot9}
+   \end{subfigure}
+   % \caption*{Encryption}
+   
+   \caption{Energy Usage (a), Duration (b), and CPU Usage (c) for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation.}
+   \label{fig:cpu_stats}
+ \end{figure*}
+ 
+
+ \begin{figure*}[ht]
+   \centering
+   % First row of plots
+   \textbf{Float Matrix Multiplication}\par\medskip
+   \begin{subfigure}[b]{0.45\textwidth}
+     \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/floatmatmul/Freq_Energy.png}
+     \caption{}
+     \label{fig:plot10}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.45\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/floatmatmul/Freq_Duration.png}
+     \caption{}
+     \label{fig:plot11}
+   \end{subfigure}
+   % \caption*{Float Matrix Multiplication}
+   
+   % Second row of plots
+   \textbf{Image Process}\par\medskip
+   \begin{subfigure}[b]{0.45\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/imageprocess/Freq_Energy.png}
+     \caption{}
+     \label{fig:plot12}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.45\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/imageprocess/Freq_Duration.png}
+     \caption{}
+     \label{fig:plot13}
+   \end{subfigure}
+   % \caption*{Image Process}
+   
+   % Third row of plots
+   \textbf{Encryption}\par\medskip
+   \begin{subfigure}[b]{0.45\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/encryption/Freq_Energy.png}
+     \caption{}
+     \label{fig:plot14}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.45\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/encryption/Freq_Duration.png}
+     \caption{}
+     \label{fig:plot15}
+   \end{subfigure}
+   % \caption*{Encryption}
+   
+   \caption{Energy Usage (a), Duration (b), and CPU Usage (c) for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation.}
+   \label{fig:freq_stats}
+ \end{figure*}
+ 
 
 \end{document}
