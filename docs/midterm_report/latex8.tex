@@ -174,7 +174,14 @@ Due to our findings of little to no correlations found, we decided to not pursue
 \section{Next Steps}
 
 \subsection{Machine Learning Model}
+To implement a machine learning model to minimize carbon emissions, we plan on using a BO model similar to \cite{CherryPick}. We will optimize our vCPUs and frequency scaling to minimize carbon with meeting SLOs being our constraint. Since we have collected data on 5 different functions, we will have a separate BO model for each function. Each function and its function input will need to be encoded into an input vector for the BO model, either using feature engineering or a neural encoder similar to \cite{AQUATOPE}. Then, the vCPU count and frequency will be concatenated to this input vector, and the BO model will search the space of vCPU count and frequency to minimize carbon emissions. The output of the BO model will be the vCPU count and frequency that minimizes carbon emissions while meeting SLOs. A diagram of the machine learning model is shown in Figure \ref{fig:ml_model}.
 
+\begin{figure}[ht]
+   \centering
+   \includegraphics[width=0.45\textwidth]{imgs/ml_model.png}
+   \caption{Bayesian Optimization Model for Carbon-Aware Serverless System}
+   \label{fig:ml_model}
+ \end{figure}
 \subsection{Adapting OpenWhisk}
 
 \begin{figure}[ht]
