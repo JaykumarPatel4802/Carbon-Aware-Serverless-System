@@ -39,7 +39,8 @@ afnanmir@utexas.edu\\
 \and
 Nidhi Dubagunta\\
 % The University of Texas at Austin\\
-nidhi.dubagunta@utexas.edu
+nidhi.dubagunta@utexas.edu \\
+nsd632
 }
 
 
@@ -71,8 +72,14 @@ In a study published by Microsoft in collaboration with the Green Software Found
 
 Carbon-aware computing not only places emphasis on minimizing carbon emissions associated with deploying and maintaining cloud infrastructures (or in our case serverless functions), but also on optimizing hardware utilization.       
 
+Through optimizing the amount of vCPU allocated and the frequency of the cores for each specific function invocation, we can both work to minimize the total energy expenditure and therefore carbon footprint, as well encourage high resource utilization, by catering to the specific performance patterns of the function. 
 \section{Related Work}
 % Include CherryPick and Aquatope
+CherryPick is a framework that was developed in order to find optimal or near-optimal cloud configurations (vCPU and memory) for big data analytics jobs, addressing challenges of system cost, performance, and adaptivity. Cherrypick leverages Bayseian Optimization to build performance models that are able to determine optimal or near-optimal configurations that satisfy performance constraints with a relatively low number of samples. Our work aims to draw from the machine learning techniques utilized in the paper and extend it to the application of finding the near-optimal configuration of vCPU and operational frequency with the objective of minimizing carbon footprint. Our work will also set performance constraints to ensure user-specified SLOs are met.
+
+Another work that utilizes Bayesian models to optimize for resource allocation is Aquatope. This framework also utilizes Bayesian optimization to learn the mapping from resource configuration to performance and cost, while considering noise and uncertainty in the cloud environment. Aquatope also uses batch sampling to reduce the cost of exploration when finding a resource configuration, (which could potentially be integrated into our work as well ??).
+
+In the space of carbon-aware computing, GreenCourier is a scheduling framework that enables runtime scheduling of serverless functions across geographically distributed regions based on their carbon efficiencies. This work focuses on minimizing carbon footprint based on the location at which a function is run, whereas our work aims to optimize the host environment through proper resource allocation and configuration to minimize carbon emissions using function-level characteristics.
 
 \begin{table*}[htbp]
    \centering
