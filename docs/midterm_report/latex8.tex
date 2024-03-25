@@ -140,6 +140,11 @@ We analyzed the data to understand how energy consumption varies with changes in
 These trends support the idea that we can use machine learning to learn the relationship between vCPU, frequency, and energy consumption, and use this model to minimize energy consumption while meeting SLOs.
 
 \subsection{Energy Consumption Over the Lifecycle of a Serverless Function Invocation}
+Additionally, we ran a variety of docker images, each of a different size, with a variety of vCPU and memory configurations. For each (image, vCPU, memory) configuration, we measured the energy consumption at different stages of the function invocation lifecycle. More specifically, we measured the energy consumed during the container spin-up, the idle time, and the container spin-down.
+
+After collecting and analyzing the data, we first found that for each stage of the lifecycle we measured, the amount of vCPU and memory configurations, the energy consumption did not vary significantly. This was true for all image sizes. This is likely due to the fact that these resources will not actually be allocated to the container until the compute inside the container actually requires it. We did notice that if we varied the image size, the energy consumption of the container spin-up process significantly increased as the image size increased. However, it is worth noting that most of the energy consumption of the spin-up is accredited to the 'docker pull' process, which would only be a one-time operation. The 'docker run' does not consume a significant amount of energy and does not show any statistical correlation. For the idle time, we noticed a strange negative correlation trend with the image size, and for the spin-down, we noticed a somewhat positive correlation with a few outlier points. Because we only used a few image sizes, we cannot definitively conclude that these trends will extrapolate.
+
+Due to our findings of little to no correlations found, we decided to not pursue a carbon-aware keep-alive policy further. More details on the study can be found in Appendix \ref{appendix:energy_variation_vcpu_memory}.
 
 % \section{Tentative System Overview}
 
@@ -342,5 +347,77 @@ The energy usage and duration for Float Matrix Multiplication, Image Processing,
    \label{fig:freq_stats}
  \end{figure*}
  
+ \subsection{Energy Variation for Different Stages of a Serverless Function Invocation}
+ \label{appendix:energy_variation_vcpu_memory}
+ We can see here the energy consumption of the container spin-up, idle time, and container spin-down for different image sizes in Figure \ref{fig:energy_stages}. 
+
+ \begin{figure*}[ht]
+   \centering
+   % First row of plots
+   \textbf{Spin Up Stage}\par\medskip
+   \begin{subfigure}[b]{0.3\textwidth}
+     \includegraphics[width=\textwidth]{imgs/container_study/spin_up_vs_cpu.png}
+     \caption{}
+     \label{fig:spin_up_cpu}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/spin_up_vs_mem.png}
+     \caption{}
+     \label{fig:spin_up_mem}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/spin_up_vs_image.png}
+     \caption{}
+     \label{fig:spin_up_img}
+   \end{subfigure}
+   % \caption*{Float Matrix Multiplication}
+   
+   % Second row of plots
+   \textbf{Spin Down Stage}\par\medskip
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/spin_down_vs_cpu.png}
+     \caption{}
+     \label{fig:spin_down_cpu}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/spin_down_vs_mem.png}
+     \caption{}
+     \label{fig:spin_down_mem}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/spin_down_vs_image.png}
+     \caption{}
+     \label{fig:spin_down_img}
+   \end{subfigure}
+   % \caption*{Image Process}
+   
+   % Third row of plots
+   \textbf{Idle Stage}\par\medskip
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/idle_vs_cpu.png}
+     \caption{}
+     \label{fig:idle_cpu}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/idle_vs_mem.png}
+     \caption{}
+     \label{fig:idle_mem}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{imgs/container_study/idle_vs_img.png}
+     \caption{}
+     \label{fig:idle_img}
+   \end{subfigure}
+   % \caption*{Encryption}
+   
+   \caption{Energy Usage vs CPU (a, d, g), Memory (b, e, h), and Image Size (c, f, i) for the Spin Up, Spin Down, and Idle stages of a serverless function invocation.}
+   \label{fig:energy_stages}
+ \end{figure*}
 
 \end{document}
