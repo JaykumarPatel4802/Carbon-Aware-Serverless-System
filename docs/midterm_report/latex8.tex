@@ -65,7 +65,7 @@ In a serverless system, when a function is invoked, the system checks for a pre-
 
 Several existing serverless systems, such as AWS and GCP, couple memory and CPU allocation, assigning a CPU share proportional to the memory requested by the user, or using a preset resource allocation option \cite{bibal2023acm}. Serverless systems today also do not incorporate dynamic frequency scaling (DFS), in which the operating frequency of the vCPU cores can be dynamically modified. These policies used for resource allocation are carbon-agnostic, meaning they do not consider the carbon emissions of the function execution and idle containers.
 
-In this paper, we propose a serverless framework that provisions and configures resources based on workload characteristics to minimize the carbon emissions associated with the function invocation, while continuing to meet SLOs, such as total runtime. The features we aim to optimize are the number of vCPUs allocated, as well as the frequency at which the vCPU cores operate. 
+In this paper, we propose a serverless framework that provisions resources based on workload characteristics to minimize the carbon emissions associated with the function invocation, while continuing to meet SLOs, such as total runtime. We introduce the frequency at which vCPUs run as a new resource to allocate per invocation. Our system will optimize the number of vCPUs allocated, as well as the frequency at which the vCPU cores operate. 
 
 \section{Motivation}
 % We can include information about the impact of server centers on carbon emissions, and how vCPU and frequency plays a role.
@@ -77,8 +77,7 @@ According to a study by Microsoft and the Green Software Foundation, data center
 
 % Through optimizing the amount of vCPU allocated and the frequency of the cores for each specific function invocation, we can both work to minimize the total energy expenditure and therefore carbon footprint, as well encourage high resource utilization, by catering to the specific performance patterns of the function. 
 The boxplot in Figure \ref{fig:energy_boxplot}, 
-show the variability in energy consumption (in joules (J)) for different functions with a fixed input, while changing the amount of VCPUs allocated and the frequency at which the cores run.
-The large range of energy consumption values we see for the same function due to changes in vCPU count and frequency underscore the importance of understanding the relationship between these factors and energy usage. This motivates further study into optimizing CPU allocation and frequency settings at a function-level to minimize energy consumption and therefore carbon footprint. 
+shows the variability in energy consumption (in joules (J)) for different functions with a fixed input, while changing the amount of vCPUs allocated and the frequency at which the cores run. The large range of energy consumption for the same function due to changes in vCPU count and frequency underscores the importance of understanding the relationship between these factors and energy usage. This motivates further study into optimizing vCPU allocation and frequency at a function-level to minimize energy consumption and therefore carbon footprint. 
 
 
 \begin{figure}[ht]
@@ -93,7 +92,7 @@ CherryPick\cite{CherryPick} is a framework that was developed in order to find o
 
 Aquatope also utilizes Bayesian models to optimize for resource allocation for serverless function invocations \cite{AQUATOPE}. This framework also utilizes BO to learn the mapping from resource configuration to performance and cost, while considering noise and uncertainty in the cloud environment. Aquatope also uses batch sampling to reduce the cost of exploration when finding a resource configuration.
 
-Our work aims to draw from the machine learning techniques utilized in CherryPick and Aquatope. We plan to use BO to find the near-optimal configuration of vCPU and operational frequency with the objective of minimizing carbon footprint for serverless function invocations. Our work will also set performance constraints to ensure user-specified SLOs are met.
+Our work aims to draw from the ML techniques utilized in CherryPick and Aquatope. We plan to use BO to find the near-optimal configuration of vCPU and operational frequency with the objective of minimizing carbon footprint for serverless function invocations. We will also set performance constraints to ensure user-specified SLOs are met.
 
 In the space of carbon-aware computing, GreenCourier \cite{GreenCourier} is a scheduling framework that enables runtime scheduling of serverless functions across geographically distributed regions based on their carbon efficiencies. This work focuses on minimizing carbon footprint based on the location at which a function is run, whereas our work aims to optimize the host environment through proper resource allocation and configuration to minimize carbon emissions using function-level characteristics.
 

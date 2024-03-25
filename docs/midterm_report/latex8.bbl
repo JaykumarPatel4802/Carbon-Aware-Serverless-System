@@ -10,6 +10,11 @@ M.~Bilal, M.~Canini, R.~Fonseca, and R.~Rodrigues.
 \newblock With great freedom comes great opportunity: Rethinking resource allocation for serverless functions.
 \newblock In {\em Proceedings of the Eighteenth European Conference on Computer Systems}, EuroSys '23, page 381–397, New York, NY, USA, 2023. Association for Computing Machinery.
 
+\bibitem{carbon_aware_computing}
+W.~Buchanan, J.~Foxon, D.~Cooke, S.~Iyer, E.~Graham, B.~DeRusha, C.~Binder, K.~Chiu, L.~Corso, H.~Richardson, V.~Knight, A.~Hussain, A.~Allison, and N.~Mathews.
+\newblock Carbon-aware computing: Meaasuring and reducing the carbon intensity associated with software in execution.
+\newblock White Paper, 2023.
+
 \bibitem{GreenCourier}
 M.~Chadha, T.~Subramanian, E.~Arima, M.~Gerndt, M.~Schulz, and O.~Abboud.
 \newblock Greencourier: Carbon-aware scheduling for serverless functions.
