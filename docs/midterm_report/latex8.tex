@@ -198,7 +198,7 @@ We will also create a custom scheduler, called EnergyScheduler, that will replac
 \section{Appendix}
 \subsection{Energy Measurement}
 \label{appendix:energy_measurement}
-A toy example of the energy measurement using EnergAt and EnergyLiteDaemon is shown in Figure \ref{fig:energy_toy_example}. Figure \ref{fig:a} shows the energy readings of EnergAt. Figure \ref{fig:b} shows the energy readings of EnergyLiteDaemon for one container. EnergyLiteDaemon doesn't capture all energy readings for a container due to the round-robin sampling approach. Figure \ref{fig:c} shows EnergyLiteDaemon's power calculation of of each energy sample. Figure \ref{fig:d} shows the energy interpolation of EnergyLiteDaemon using trapezoidal integration.
+A toy example of the energy measurement of a container using EnergAt and EnergyLiteDaemon is shown in Figure \ref{fig:energy_toy_example}. Figure \ref{fig:a} shows the energy readings of EnergAt. Figure \ref{fig:b} shows the energy readings of EnergyLiteDaemon. EnergyLiteDaemon doesn't capture all energy readings for the container due to the round-robin sampling approach. Figure \ref{fig:c} shows EnergyLiteDaemon's power calculation of each energy sample. Figure \ref{fig:d} shows the energy interpolation of EnergyLiteDaemon using trapezoidal integration.
 
 \begin{figure*}[ht] % Note the use of figure* instead of figure
    \centering
@@ -230,7 +230,7 @@ A toy example of the energy measurement using EnergAt and EnergyLiteDaemon is sh
          \label{fig:d}
    \end{subfigure}
    
-   \caption{Toy example of energy measurement using EnergAt and EnergyLiteDaemon. (a) EnergAt energy readings. (b) EnergyLiteDaemon energy readings for one container. (c) EnergyLiteDaemon power calculation (red dots). (d) EnergyLiteDaemon energy interpolation using trapezoidal integration.}
+   \caption{Toy example of energy measurement of a container using EnergAt and EnergyLiteDaemon. (a) EnergAt energy readings. (b) EnergyLiteDaemon energy readings. (c) EnergyLiteDaemon power calculation (red dots). (d) EnergyLiteDaemon energy interpolation using trapezoidal integration.}
    \label{fig:energy_toy_example}
 \end{figure*}
 
