@@ -88,7 +88,7 @@ shows the variability in energy consumption (in joules (J)) for different functi
  \end{figure}
 \section{Related Work}
 % Include CherryPick and Aquatope
-CherryPick\cite{CherryPick} is a framework that was developed in order to find optimal or near-optimal cloud configurations (vCPU and memory) for repetitive big data analytics jobs, addressing challenges of system cost, performance, and adaptivity. CherryPick leverages Bayseian Optimization (BO) to build performance models that are able to determine optimal or near-optimal configurations that satisfy performance constraints with a relatively low number of samples. 
+CherryPick\cite{CherryPick} is a framework that was developed to find optimal or near-optimal cloud configurations (vCPU and memory) for repetitive big data analytics jobs, addressing challenges of system cost, performance, and adaptivity. CherryPick leverages Bayesian Optimization (BO) to build performance models that are able to determine optimal or near-optimal configurations that satisfy performance constraints with a relatively low number of samples. 
 
 Aquatope also utilizes Bayesian models to optimize for resource allocation for serverless function invocations \cite{AQUATOPE}. This framework also utilizes BO to learn the mapping from resource configuration to performance and cost, while considering noise and uncertainty in the cloud environment. Aquatope also uses batch sampling to reduce the cost of exploration when finding a resource configuration.
 
@@ -136,11 +136,11 @@ The carbon intensity refers to how \textit{clean} the energy source is. For exam
 \subsection{Measuring Energy}
 We first need a way to measure the energy consumption of a serverless function invocation. EnergAt \cite{he2023hotcarbon} is a tool that measures fine-grained energy consumption at the thread-level while taking into account NUMA effects. An EnergAt process continuously samples a target container, where each sample returns energy readings over an interval of at least 50ms. Therefore, EnergAt will get continuous back-to-back samples of energy readings over time. The energy consumption of a target container is the sum of the energy readings over the duration of the function invocation. One limitation of EnergAt is that every target container for which we want to measure energy consumption must be instrumented with its own EnergAt process. This is not feasible as the number of EnergAt processes and resource contention scales with the number of target containers.
 
-To mitigate this issue, we created EnergyLiteDaemon. EnergyLiteDaemon is a daemon that samples multiple target containers in a round-robin fashion, where each sample returns energy readings over an interval of at least 50ms. This allows us to measure energy consumption of multiple target containers with a single, light-weight, process. Due to the round-robin fashion, however, the sampling frequency per target container decreases as a function of the number of target containers. If there are multiple containers, the samples are no longer back-to-back -- there may be some time delay between two samples. To solve this, we complete the following steps to interpolate the total energy consumption of a target container:
+To mitigate this issue, we created EnergyLiteDaemon. EnergyLiteDaemon is a daemon that samples multiple target containers in a round-robin fashion, where each sample returns energy readings over an interval of at least 50ms. This allows us to measure the energy consumption of multiple target containers with a single, lightweight, process. Due to the round-robin fashion, however, the sampling frequency per target container decreases as a function of the number of target containers. If there are multiple containers, the samples are no longer back-to-back -- there may be some time delay between two samples. To solve this, we complete the following steps to interpolate the total energy consumption of a target container:
 
-\textbf{Power Calculation:} We compute the average power for every sample by dividing the energy consumed over the interval of the sample by the duration of that interval. This allows us to get a power-time scatter-plot which contains $n$ points, where $n$ is the number of samples.
+\textbf{Power Calculation:} We compute the average power for every sample by dividing the energy consumed over the interval of the sample by the duration of that interval. This allows us to get a power-time scatter plot that contains $n$ points, where $n$ is the number of samples.
 
-\textbf{Trapezoidal Integration:} Given a power-time scatter-plot, we compute the total energy consumption of a target container using trapezoidal integration. All of the points in the power-time scatter-plot are connected by straight lines, and the area under the curve is calculated. This area is the total energy consumption of the target container. 
+\textbf{Trapezoidal Integration:} Given a power-time scatter-plot, we compute the total energy consumption of a target container using trapezoidal integration. All of the points in the power-time scatter plot are connected by straight lines, and the area under the curve is calculated. This area is the total energy consumption of the target container. 
 
 A toy example of energy measurement using EnergAt and EnergyLiteDaemon is shown in Appendix \ref{appendix:energy_measurement}.
 
@@ -155,7 +155,7 @@ Due to EnergyLiteDaemon's round-robin sampling approach, which reduces its overh
 
 \section{Measurment Study}
 
-We conduct two measurement studies to answer the following questions: \textbf{1. How does energy vary with changes in vCPU and frequency allocation? 2. What is the energy consumption over the lifecycle of a serverless function invocaiton?}
+We conduct two measurement studies to answer the following questions: \textbf{1. How does energy vary with changes in vCPU and frequency allocation? 2. What is the energy consumption over the lifecycle of a serverless function invocation?}
 
 To perform the measurement study, we use OpenWhisk, which is an open-source serverless platform, to run function invocations. We use EnergyLiteDaemon to measure the energy consumption of the function invocations.
 
@@ -169,7 +169,7 @@ A variety of workloads were run on different vCPU and frequency configurations. 
 
 We then analyzed the data to understand how energy consumption varies with changes in vCPU and frequency allocation. For float matrix multiplication, energy usage initially decreases and then flat-lines as the vCPU allocation increases. This is because matrix multiplication is highly parallelizable and has high vCPU utilization, leading to a decrease in duration and energy usage. For image processing, energy usage has no apparent correlation with vCPU allocation, likely because most of the image processing tasks are non-parallelizable. For encryption, energy usage, duration, and vCPU utilization do not change with vCPU allocation because encryption is also non-parallelizable and does not benefit from additional vCPUs.
 
-For both types of functions, energy consumption as a function of frequency displays a convex curve, where energy consumption decreases with frequency until a certain point (which varies between different functions and function inputs), and then begins to increase again. This is because the energy consumption per time unit of a vCPU is proportional to the frequency at which it runs, but the overall duration of the function is inversely proportional to the frequency at which the vCPU runs. More details on the results can be found in Appendix.
+For both types of functions, energy consumption as a function of frequency displays a convex curve, where energy consumption decreases with frequency until a certain point (which varies between different functions and function inputs), and then begins to increase again. This is because the energy consumption per time unit of a vCPU is proportional to the frequency at which it runs, but the overall duration of the function is inversely proportional to the frequency at which the vCPU runs. More details on the results can be found in Appendix \ref{appendix:energy_variation_vcpu_frequency}.
 
 These trends support the idea that we can use machine learning to learn the relationship between vCPU, frequency, and energy consumption, and use this model to minimize energy consumption while meeting SLOs.
 
@@ -178,7 +178,7 @@ Additionally, we ran a variety of docker images, each of a different size, with 
 
 After collecting and analyzing the data, we first found that for each stage of the lifecycle we measured, when changing the vCPU and memory configurations, the energy consumption did not vary significantly. This was true for all image sizes. This is likely due to the fact that these resources will not actually be allocated to the container until the compute inside the container requires them. We did notice that if we varied the image size, the energy consumption of the container spin-up process significantly increased as the image size increased. However, it is worth noting that most of the energy consumption of the spin-up is accredited to the `docker pull' process, which would only be a one-time operation. The `docker run' does not consume a significant amount of energy and does not show any statistical correlation. For the idle time, we noticed a strange negative correlation trend with the image size, and for the spin-down, we noticed a somewhat positive correlation with a few outlier points. Since we only used a few image sizes, we cannot definitively conclude that these trends will extrapolate.
 
-Due to our findings of little to no correlations found, we decided to not pursue a carbon-aware keep-alive policy further. More details on the study can be found in Appendix \ref{appendix:energy_variation_vcpu_memory}.
+Due to our findings of little to no correlations, we decided to not pursue a carbon-aware keep-alive policy further. More details on the study can be found in Appendix \ref{appendix:energy_variation_vcpu_memory}.
 
 % \section{Tentative System Overview}
 
@@ -211,7 +211,7 @@ To implement a machine learning model to minimize carbon emissions, we plan on u
 
 We will adapt OpenWhisk to incorporate Bayesian Optimization to drive a carbon-aware DFS and vCPU allocation model. Figure \ref{fig:adapted_ow_system_overview} shows the system overview.
 
-The Bayesian Optimization model will be contained in a shim layer, called the EnergyModel. Whenever a user invokes a function, the EnergyModel is be used to determine the optimal vCPU and frequency allocation (using Bayesian Optimization). The EnergyModel will be trained on the data collected from the measurement study.
+The Bayesian Optimization model will be contained in a shim layer, called the EnergyModel. Whenever a user invokes a function, the EnergyModel will be used to determine the optimal vCPU and frequency allocation (using Bayesian Optimization). The EnergyModel will be trained on the data collected from the measurement study.
 
 We will also create a custom scheduler, called EnergyScheduler, that will replace OpenWhisk's current scheduler. The EnergyScheduler will use the output of EnergyModel to determine the optimal vCPU to allocate for a function invocation. There will also be multiple invoker nodes, each running at a different frequency. The EnergyScheduler will send the request to the invoker that is running at the frequency predicted by EnergyModel.
 
@@ -263,7 +263,7 @@ A toy example of the energy measurement of a container using EnergAt and EnergyL
 
 \subsection{Energy Variation with vCPU and Frequency Allocation}
 \label{appendix:energy_variation_vcpu_frequency}
-The energy usage, duration, and CPU usage and for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation are shown in Figure \ref{fig:cpu_stats}. 
+The energy usage, duration, and CPU usage for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation are shown in Figure \ref{fig:cpu_stats}. 
 
 The energy usage and duration for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU frequency are shown in Figure \ref{fig:freq_stats}. 
 \begin{figure*}[ht]
