@@ -1,3 +1,42 @@
-\begin{thebibliography}{}\setlength{\itemsep}{-1ex}\small
+\begin{thebibliography}{1}\setlength{\itemsep}{-1ex}\small
+
+\bibitem{CherryPick}
+O.~Alipourfard, H.~H. Liu, J.~Chen, S.~Venkataraman, M.~Yu, and M.~Zhang.
+\newblock {CherryPick}: Adaptively unearthing the best cloud configurations for big data analytics.
+\newblock In {\em 14th USENIX Symposium on Networked Systems Design and Implementation (NSDI 17)}, pages 469--482, Boston, MA, Mar. 2017. USENIX Association.
+
+\bibitem{bibal2023acm}
+M.~Bilal, M.~Canini, R.~Fonseca, and R.~Rodrigues.
+\newblock With great freedom comes great opportunity: Rethinking resource allocation for serverless functions.
+\newblock In {\em Proceedings of the Eighteenth European Conference on Computer Systems}, EuroSys '23, page 381–397, New York, NY, USA, 2023. Association for Computing Machinery.
+
+\bibitem{carbon_aware_computing}
+W.~Buchanan, J.~Foxon, D.~Cooke, S.~Iyer, E.~Graham, B.~DeRusha, C.~Binder, K.~Chiu, L.~Corso, H.~Richardson, V.~Knight, A.~Hussain, A.~Allison, and N.~Mathews.
+\newblock Carbon-aware computing: Meaasuring and reducing the carbon intensity associated with software in execution.
+\newblock White Paper, 2023.
+
+\bibitem{GreenCourier}
+M.~Chadha, T.~Subramanian, E.~Arima, M.~Gerndt, M.~Schulz, and O.~Abboud.
+\newblock Greencourier: Carbon-aware scheduling for serverless functions.
+\newblock In {\em WoSC '23: Proceedings of the 9th International Workshop on Serverless Computing}, pages 18--23. ACM Press, Dec. 2023.
+
+\bibitem{gupta2022act}
+U.~Gupta, M.~Elgamal, G.~Hills, G.-Y. Wei, H.-H.~S. Lee, D.~Brooks, and C.-J. Wu.
+\newblock Act: designing sustainable computer systems with an architectural carbon modeling tool.
+\newblock In {\em Proceedings of the 49th Annual International Symposium on Computer Architecture}, ISCA '22, page 784–799, New York, NY, USA, 2022. Association for Computing Machinery.
+
+\bibitem{he2023hotcarbon}
+H.~Hè, M.~Friedman, and T.~Rekatsinas.
+\newblock Energat: Fine-grained energy attribution for multi-tenancy.
+\newblock In {\em Proceedings of the 2nd Workshop on Sustainable Computer Systems}, HotCarbon ’23. ACM, July 2023.
+
+\bibitem{sinha2024shabari}
+P.~Sinha, K.~Kaffes, and N.~J. Yadwadkar.
+\newblock Shabari: Delayed decision-making for faster and efficient serverless functions, 2024.
+
+\bibitem{AQUATOPE}
+Z.~Zhou, Y.~Zhang, and C.~Delimitrou.
+\newblock Aquatope: {QoS}-and-uncertainty-aware resource management for multi-stage serverless workflows.
+\newblock In {\em ASPLOS 2023: Proceedings of the 28th ACM International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 1}, pages 1--14. ACM Press, Mar. 2023.
 
 \end{thebibliography}
