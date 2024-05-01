@@ -207,13 +207,13 @@ To implement a machine learning model to minimize carbon emissions, we plan on u
 
 We adapted OpenWhisk to incorporate Bayesian Optimization to drive a carbon-aware DFS and vCPU allocation model. Figure \ref{fig:adapted_ow_system_overview} shows the system overview.
 
-The Bayesian Optimization model is contained in a shim layer, called the EnergyModel. Whenever a user invokes a function, the EnergyModel determines the optimal vCPU and frequency allocation (using Bayesian Optimization). The EnergyModel is trained online periodically.
+The Bayesian Optimization model is contained in a shim layer, called the EnergyModel. Whenever a user invokes a function, the EnergyModel determines the optimal vCPU and frequency allocation (using Bayesian Optimization). The EnergyModel is trained online periodically at 30 second intervals.
 
-We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's current scheduler. There are multiple invoker nodes, each running at a different frequency. The EnergyScheduler uses the output of EnergyModel to determine which invoker to send the function invocation to. We base the EnergyScheduler's algorithm off of Shabri's scheduler \cite{sinha2024shabari}. EnergyScheduler is designed to mitigate cold starts by:
+We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's current scheduler. There are multiple invoker nodes, each running at a different frequency, as shown in \ref{fig:adapted_ow_system_overview}. The EnergyScheduler uses the output of EnergyModel to determine which invoker to send the function invocation to. We base the EnergyScheduler's algorithm off of Shabri's scheduler \cite{sinha2024shabari}. EnergyScheduler is designed to mitigate cold starts by:
 
-\textbf{1. Prioritizing routing the invocation to warm containers: } The scheduler will receive the invocation and the predicted vCPU and frequency allocation from the EnergyModel. The scheduler will then iterate through the invokers running at at least the predicted frequency and attempt to find a warm container that is closest to the predicted vCPU allocation. If a warm container is found, the invocation is sent to that container. If no warm container is found, the invocation is send to a randomly selected invoker.
+\textbf{1. Prioritizing routing the invocation to warm containers: } The scheduler will receive the invocation and the predicted vCPU and frequency allocation from the EnergyModel. The scheduler will then iterate through the invokers running at at least the predicted frequency and attempt to find a warm container that is closest to the predicted vCPU allocation. If a warm container is found, the invocation is sent to that container. If no warm container is found, the invocation is send to the invoker running at the predicted frequency.
 
-\textbf{2. Premptively spinning up containers: } In the case that there is no warm container with the exact predicted vCPU allocation on the invoker running at the predicted frequency, the scheduler will preemptively spin up a container on the invoker running at the predicted frequency with the predicted vCPU allocation. This is done to mitigate future cold starts and underutilization of resources. The underlying assumption is that function invocations exhibit temporal locality, meaning that in a short time frame, the same function is likely to be invoked again. Thus, preemptively spinning up a container will reduce the likelihood of cold starts for future invocations.
+\textbf{2. Premptively spinning up containers: } In the case that the invocation is sent to an invoker running at higher than the predicted frequency or with more vCPUs than predicted, the scheduler will preemptively spin up a container on the invoker running at the predicted frequency with the predicted vCPU allocation. This is done to mitigate future cold starts and underutilization of resources. The underlying assumption is that function invocations exhibit temporal locality, meaning that in a short time frame, the same function is likely to be invoked again. Thus, preemptively spinning up a container will reduce the likelihood of cold starts for future invocations.
 
 \section{Evaluation}
 
@@ -237,10 +237,25 @@ We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's
 
 \textbf{Metrics.}
 
-\textbf{Baselines.} We compare our system to two baselines Parrotfish and Aquatope. Parrotfish utilizes parametric regression to predict resource configuration, while Aquatope uses Bayesian Optimization to predict resource configuration. We compare our system to these baselines in terms of energy consumption and SLO violations.
+\textbf{Baselines.} We compare our system to two baselines Parrotfish and Aquatope. Parrotfish \cite{parrotfish} utilizes parametric regression to predict resource configuration, while Aquatope \cite{aquatope} uses Bayesian Optimization to predict resource configuration. Neither of the aforementioned baselines consider optimizing for energy efficiency. Furthermore, the original OpenWhisk's scheduler was used when running Parrotfish and Aquatope. We compare our system to these baselines in terms of energy consumption and SLO violations.
 
-\subsection{Results}
+\subsection{Results using EnergyLiteDaemon}
+We ran the experiment for Parrotfish, Aquatope, and our system, where EnergyLiteDaemon was used to collect energy consumption data.
 
+\subsubsection{Energy Comparison}
+
+\subsubsection{SLO Violations Comparison}
+
+\subsection{Results using Energat}
+
+\subsubsection{Energy Comparison}
+
+\subsubsection{SLO Violations Comparison}
+
+
+\section{Discussion}
+
+\section{Conclusion}
 
 % \section{Conclusion}
 

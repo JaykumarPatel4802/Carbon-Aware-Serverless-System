@@ -100,3 +100,40 @@ month = mar
       archivePrefix={arXiv},
       primaryClass={cs.DC}
 }
+
+@inproceedings{parrotfish,
+  author = {Moghimi, Arshia and Hattori, Joe and Li, Alexander and Ben Chikha, Mehdi and Shahrad, Mohammad},
+  title = {Parrotfish: Parametric Regression for Optimizing Serverless Functions},
+  year = {2023},
+  isbn = {9798400703874},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3620678.3624654},
+  doi = {10.1145/3620678.3624654},
+  abstract = {Serverless computing is a new paradigm that aims to remove the burdens of cloud management from developers. Yet rightsizing serverless functions remains a pain point for developers. Choosing the right memory configuration is necessary to ensure cost and/or performance optimality for serverless workloads. In this work, we identify that using parametric regression can significantly simplify function rightsizing compared to black-box optimization techniques currently available. With this insight, we build a tool, called Parrotfish, which finds optimal configurations through an online learning process. It also allows users to communicate constraints on execution time, or to relax cost optimality to gain performance. Parrotfish achieves substantially lower exploration costs (1.81-9.96\texttimes{}) compared with the state-of-the-art tools, while delivering similar or better recommendations.},
+  booktitle = {Proceedings of the 2023 ACM Symposium on Cloud Computing},
+  pages = {177–192},
+  numpages = {16},
+  keywords = {Performance Modeling, Serverless Computing},
+  location = {<conf-loc>, <city>Santa Cruz</city>, <state>CA</state>, <country>USA</country>, </conf-loc>},
+  series = {SoCC '23}
+}
+
+@inproceedings{aquatope,
+  author = {Zhou, Zhuangzhuang and Zhang, Yanqi and Delimitrou, Christina},
+  title = {AQUATOPE: QoS-and-Uncertainty-Aware Resource Management for Multi-stage Serverless Workflows},
+  year = {2022},
+  isbn = {9781450399159},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3567955.3567960},
+  doi = {10.1145/3567955.3567960},
+  abstract = {Multi-stage serverless applications, i.e., workflows with many computation and I/O stages, are becoming increasingly representative of FaaS platforms. Despite their advantages in terms of fine-grained scalability and modular development, these applications are subject to suboptimal performance, resource inefficiency, and high costs to a larger degree than previous simple serverless functions.
+  We present Aquatope, a QoS-and-uncertainty-aware resource scheduler for end-to-end serverless workflows that takes into account the inherent uncertainty present in FaaS platforms, and improves performance predictability and resource efficiency. Aquatope uses a set of scalable and validated Bayesian models to create pre-warmed containers ahead of function invocations, and to allocate appropriate resources at function granularity to meet a complex workflow's end-to-end QoS, while minimizing resource cost. Across a diverse set of analytics and interactive multi-stage serverless workloads, Aquatope significantly outperforms prior systems, reducing QoS violations by 5X, and cost by 34\% on average and up to 52\% compared to other QoS-meeting methods.},
+  booktitle = {Proceedings of the 28th ACM International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 1},
+  pages = {1–14},
+  numpages = {14},
+  keywords = {serverless computing, resource management, resource efficiency, resource allocation, quality of service, machine learning for systems, function-as-a-service, datacenter, Cloud computing},
+  location = {Vancouver, BC, Canada},
+  series = {ASPLOS 2023}
+}

@@ -30,6 +30,11 @@ H.~Hè, M.~Friedman, and T.~Rekatsinas.
 \newblock Energat: Fine-grained energy attribution for multi-tenancy.
 \newblock In {\em Proceedings of the 2nd Workshop on Sustainable Computer Systems}, HotCarbon ’23. ACM, July 2023.
 
+\bibitem{parrotfish}
+A.~Moghimi, J.~Hattori, A.~Li, M.~Ben~Chikha, and M.~Shahrad.
+\newblock Parrotfish: Parametric regression for optimizing serverless functions.
+\newblock In {\em Proceedings of the 2023 ACM Symposium on Cloud Computing}, SoCC '23, page 177–192, New York, NY, USA, 2023. Association for Computing Machinery.
+
 \bibitem{sinha2024shabari}
 P.~Sinha, K.~Kaffes, and N.~J. Yadwadkar.
 \newblock Shabari: Delayed decision-making for faster and efficient serverless functions, 2024.
