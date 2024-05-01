@@ -237,7 +237,7 @@ We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's
 
 \textbf{Metrics.}
 
-\textbf{Baselines.} We compare our system to two baselines Parrotfish and Aquatope. Parrotfish \cite{parrotfish} utilizes parametric regression to predict resource configuration, while Aquatope \cite{aquatope} uses Bayesian Optimization to predict resource configuration. Neither of the aforementioned baselines consider optimizing for energy efficiency. Furthermore, the original OpenWhisk's scheduler was used when running Parrotfish and Aquatope. We compare our system to these baselines in terms of energy consumption and SLO violations.
+\textbf{Baselines.} We compare our system to two baselines Parrotfish and Aquatope. Parrotfish \cite{parrotfish} utilizes parametric regression to predict resource configuration, while Aquatope \cite{aquatope} uses Bayesian Optimization to predict resource configuration. Neither of the aforementioned baselines consider optimizing for energy efficiency. Furthermore, the original OpenWhisk's scheduler was used when running Parrotfish and Aquatope. Furthermore, Parrotfish only optimizes memory allocation; thus, we allocate CPU proportional to memory. Since our system only optimizes CPU and frequency, we run our system three times: 1. using Parrotfish's memory predictions, 2. using Aquatope's memory predictions, 3. constant value of 4096 bytes. We compare our system to these baselines in terms of energy consumption and SLO violations.
 
 \subsection{Results using EnergyLiteDaemon}
 We ran the experiment for Parrotfish, Aquatope, and our system, where EnergyLiteDaemon was used to collect energy consumption data.
