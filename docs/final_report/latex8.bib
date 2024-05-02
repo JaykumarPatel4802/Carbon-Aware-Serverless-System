@@ -9,7 +9,7 @@
     doi = {10.1145/3470496.3527408},
     abstract = {Given the performance and efficiency optimizations realized by the computer systems and architecture community over the last decades, the dominating source of computing's carbon footprint is shifting from operational emissions to embodied emissions. These embodied emissions owe to hardware manufacturing and infrastructure-related activities. Despite the rising embodied emissions, there is a distinct lack of architectural modeling tools to quantify and optimize the end-to-end carbon footprint of computing. This work proposes ACT, an architectural carbon footprint modeling framework, to enable carbon characterization and sustainability-driven early design space exploration. Using ACT we demonstrate optimizing hardware for carbon yields distinct solutions compared to optimizing for performance and efficiency. We construct use cases, based on the three tenets of sustainable design---Reduce, Reuse, Recycle---to highlight future methods that enable strong performance and efficiency scaling in an environmentally sustainable manner.},
     booktitle = {Proceedings of the 49th Annual International Symposium on Computer Architecture},
-    pages = {784–799},
+    pages = {784-799},
     numpages = {16},
     keywords = {sustainable computing, mobile, manufacturing, energy, computer architecture},
     location = {New York, New York},
@@ -25,7 +25,7 @@
    publisher={ACM},
    author={Hè, Hongyu and Friedman, Michal and Rekatsinas, Theodoros},
    year={2023},
-   month=jul, collection={HotCarbon ’23} }
+   month=jul, collection={HotCarbon '23} }
 
 
 @inproceedings {CherryPick,
@@ -76,7 +76,7 @@ month = mar
   doi = {10.1145/3552326.3567506},
   abstract = {Current serverless offerings give users limited flexibility for configuring the resources allocated to their function invocations. This simplifies the interface for users to deploy server-less computations but creates deployments that are resource inefficient. In this paper, we take a principled approach to the problem of resource allocation for serverless functions, analyzing the effects of automating this choice in a way that leads to the best combination of performance and cost. In particular, we systematically explore the opportunities that come with decoupling memory and CPU resource allocations and also enabling the use of different VM types, and we find a rich trade-off space between performance and cost. The provider can use this in a number of ways, e.g., exposing all these parameters to the user; eliding preferences for performance and cost from users and simply offer the same performance with lower cost; or exposing a small number of choices for users to trade performance for cost.Our results show that, by decoupling memory and CPU allocation, there is the potential to have up to 40\% lower execution cost than the preset coupled configurations that are the norm in current serverless offerings. Similarly, making the correct choice of VM instance type can provide up to 50\% better execution time. Furthermore, we demonstrate that providers have the flexibility to choose different instance types for the same functions to maximize resource utilization while providing performance within 10--20\% of the best resource configuration for each respective function.},
   booktitle = {Proceedings of the Eighteenth European Conference on Computer Systems},
-  pages = {381–397},
+  pages = {381-397},
   numpages = {17},
   keywords = {resource allocation, optimization, serverless},
   location = {Rome, Italy},
@@ -112,7 +112,7 @@ month = mar
   doi = {10.1145/3620678.3624654},
   abstract = {Serverless computing is a new paradigm that aims to remove the burdens of cloud management from developers. Yet rightsizing serverless functions remains a pain point for developers. Choosing the right memory configuration is necessary to ensure cost and/or performance optimality for serverless workloads. In this work, we identify that using parametric regression can significantly simplify function rightsizing compared to black-box optimization techniques currently available. With this insight, we build a tool, called Parrotfish, which finds optimal configurations through an online learning process. It also allows users to communicate constraints on execution time, or to relax cost optimality to gain performance. Parrotfish achieves substantially lower exploration costs (1.81-9.96\texttimes{}) compared with the state-of-the-art tools, while delivering similar or better recommendations.},
   booktitle = {Proceedings of the 2023 ACM Symposium on Cloud Computing},
-  pages = {177–192},
+  pages = {177-192},
   numpages = {16},
   keywords = {Performance Modeling, Serverless Computing},
   location = {<conf-loc>, <city>Santa Cruz</city>, <state>CA</state>, <country>USA</country>, </conf-loc>},
@@ -131,7 +131,7 @@ month = mar
   abstract = {Multi-stage serverless applications, i.e., workflows with many computation and I/O stages, are becoming increasingly representative of FaaS platforms. Despite their advantages in terms of fine-grained scalability and modular development, these applications are subject to suboptimal performance, resource inefficiency, and high costs to a larger degree than previous simple serverless functions.
   We present Aquatope, a QoS-and-uncertainty-aware resource scheduler for end-to-end serverless workflows that takes into account the inherent uncertainty present in FaaS platforms, and improves performance predictability and resource efficiency. Aquatope uses a set of scalable and validated Bayesian models to create pre-warmed containers ahead of function invocations, and to allocate appropriate resources at function granularity to meet a complex workflow's end-to-end QoS, while minimizing resource cost. Across a diverse set of analytics and interactive multi-stage serverless workloads, Aquatope significantly outperforms prior systems, reducing QoS violations by 5X, and cost by 34\% on average and up to 52\% compared to other QoS-meeting methods.},
   booktitle = {Proceedings of the 28th ACM International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 1},
-  pages = {1–14},
+  pages = {1-14},
   numpages = {14},
   keywords = {serverless computing, resource management, resource efficiency, resource allocation, quality of service, machine learning for systems, function-as-a-service, datacenter, Cloud computing},
   location = {Vancouver, BC, Canada},
