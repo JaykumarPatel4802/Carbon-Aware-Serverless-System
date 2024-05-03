@@ -251,11 +251,11 @@ We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's
   \begin{tabular}{|c|c|c|c|c|}
   \hline
   \textbf{Function} & \textbf{Input Type} & \textbf{\# Runs} & \textbf{Sizes} & \textbf{Size Range} \\ \hline
-  floatmatmult & square matrix & 1 & 1 & 1 \\ \hline
-  linpack & square matrix & 1 & 1 & 1 \\ \hline
-  encrypt & string & 1 & 1 & 1 \\ \hline
-  imageprocess & image & 1 & 1 & 1 \\ \hline
-  videoprocess & video & 1 & 1 & 1 \\ \hline
+  floatmatmult & square matrix & 383 & 25 & 1000 - 8000 \\ \hline
+  linpack & square matrix & 381 & 22 & 250 - 10000 \\ \hline
+  encrypt & string & 348 & 36 & 500 - 50000 \\ \hline
+  imageprocess & image & 374 & 64 & 916K - 30M \\ \hline
+  videoprocess & video & 358 & 17 & 284K - 11M \\ \hline
   \end{tabular}
   \caption{Summary of serverless functions studied.}
   \label{tab:summary_of_serverless_functions}
