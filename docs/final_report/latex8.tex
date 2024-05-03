@@ -91,7 +91,7 @@ shows the variability in energy consumption (in joules (J)) for different functi
 % Include CherryPick and Aquatope
 CherryPick \cite{CherryPick} is a framework that was developed to find optimal or near-optimal cloud configurations (vCPU and memory) for repetitive big data analytics jobs, addressing challenges of system cost, performance, and adaptivity. CherryPick leverages Bayesian Optimization (BO) to build performance models that are able to determine optimal or near-optimal configurations that satisfy performance constraints with a relatively low number of samples. 
 
-Aquatope \cite{AQUATOPE} also utilizes Bayesian models to optimize for resource allocation for serverless function invocations. This framework also utilizes BO to learn the mapping from resource configuration to performance and cost, while considering noise and uncertainty in the cloud environment. Aquatope also uses batch sampling to reduce the cost of exploration when finding a resource configuration.
+Aquatope \cite{aquatope} also utilizes Bayesian models to optimize for resource allocation for serverless function invocations. This framework also utilizes BO to learn the mapping from resource configuration to performance and cost, while considering noise and uncertainty in the cloud environment. Aquatope also uses batch sampling to reduce the cost of exploration when finding a resource configuration.
 
 Our work aims to draw from the ML techniques utilized in CherryPick and Aquatope. We plan to use BO to find the near-optimal configuration of vCPU and operational frequency with the objective of minimizing carbon footprint for serverless function invocations. We will also set performance constraints to ensure user-specified SLOs are met.
 
@@ -188,12 +188,14 @@ Due to our findings of little to no correlations, we decided to not pursue a car
 
 \section{Final System}
 
+Our final system, Carbon Aware Serverless System (CASS), consists of two main components: a machine learning model that predicts the optimal vCPU count and frequency for a given function invocation, and a custom scheduler that attempts to route the invocation to a warm container with or greater than the predicted vCPU count and frequency.
+
 \subsection{Machine Learning Model}
-To implement a machine learning model to minimize carbon emissions, we utilize a Gaussian Process Regressor (GPR), similar to \cite{AQUATOPE}. We optimize for vCPU allocation and operational frequency to try and minimize carbon emissions, while setting SLOs as our constraint. Since we have collected data on 5 different functions and each function has different usage patterns, we have a separate model for each function. Each function and input is encoded into an input vector for the regression model, and the vCPU count and frequency are concatenated to this input vector.
+To implement a machine learning model to minimize carbon emissions, we utilize a Gaussian Process Regressor (GPR), similar to \cite{aquatope}. We optimize for vCPU allocation and operational frequency to try and minimize carbon emissions, while setting SLOs as our constraint. Since we have collected data on 5 different functions and each function has different usage patterns, we have a separate model for each function. Each function's input is encoded into an input vector for the regression model, and the vCPU count and frequency are concatenated to this input vector.
 
-When a function is invoked, after the input feature vector is constructed, we perform an iterative process in which we go through all possible resource configurations (in terms of vCPU count and frequency) and predict the energy consumption and duration for that specific function and function input given the configuration. Given these predictions, we filter the results that were predicted to violate SLOs, and choose the combination that minimizes the energy consumption. 
+When a function is invoked, after the input feature vector is constructed, we perform an iterative process in which we go through all possible resource configurations (in terms of vCPU count and frequency) and predict the energy consumption and duration for that specific function and function input given the configuration. Given these predictions, we filter the results that were predicted to violate SLOs, and choose the vCPU count and frequency configuration that minimizes the energy consumption. 
 
-Since our model is trained from scratch, early inferences by the model will have lower confidence. To encourage exploration of the feature space in early invocations of a function and allow the model to see a more diverse set of data points or training, we set the value for a confidence threshold that the model prediction should meet. In the case that the prediction is not confident, we sample a random configuration of resources for the invocation to run at. 
+Since our model is trained from scratch, early inferences by the model will have lower confidence. To encourage exploration of the feature space in early invocations of a function and allow the model to see a more diverse set of data points for training, we set the value for a confidence threshold that the model prediction should meet. In the case that the prediction is not confident, we sample a random configuration of resources for the invocation to run at. 
 
 Simultaneously, we have a background thread that is periodically polling a database that receives observed energy and latency readings from our invokers and uses this as training data to train our models, to utilize online learning. This, however, is not on the critical path.
 
@@ -201,7 +203,7 @@ A diagram of the machine learning model is shown in Figure \ref{fig:ml_model}.
 
 \begin{figure}[ht]
    \centering
-   \includegraphics[width=0.45\textwidth]{imgs/model.png}
+   \includegraphics[width=0.45\textwidth]{imgs/ml_model.png}
    \caption{Bayesian Optimization Model for Carbon-Aware Serverless System}
    \label{fig:ml_model}
  \end{figure}
@@ -209,13 +211,13 @@ A diagram of the machine learning model is shown in Figure \ref{fig:ml_model}.
  \subsubsection{Evaluating Model Performance on Measurement Study Data}
 In order to analyze the effectiveness of our model and tune hyperparameters, such as the confidence threshold and the type of kernel used, we simulate a trace of function invocations using the measurement study data and compare our model predictions to the ground truth values obtained from the study.
 
-Every ten seconds, we "invoke" a function with a certain function input and send this information to the model, which vectorizes the function input features and finds the optimal resource configuration that meets SLOs. Our model is trained simultaneously in a background thread every 30 seconds. 
+Every ten seconds, we ``invoke" a function with a certain function input and send this information to the model, which vectorizes the function input features and finds the optimal resource configuration that meets SLOs. Our model is trained simultaneously in a background thread every 30 seconds. 
  
-For Float Matrix Multiplication, Linpack, and Encrypt, our model is able to eventually converge to a minimum energy value after training on a certain number of invocations and learning from the patterns that it sees overtime. We analyze the energy expended over time for each function (for a few function inputs) and see a clear convergence for these three functions. When comparing the energy consumption of the predicted configuration to the energy of the known minimum configuration (from our ground truth values), we also see the difference between these two values eventually converge to a value close to 0. (meaning our prediction of the optimal configuration is very close to the actual minimum configuration).  
+For Float Matrix Multiplication, Linpack, and Encrypt, our model is able to eventually converge to a minimum energy value after training on a certain number of invocations and learning from the patterns that it sees overtime. We analyze the energy expended over time for each function invocation (for a few function inputs) and see a clear convergence for these three functions. When comparing the energy consumption of the predicted configuration to the energy of the known minimum configuration (from our ground truth values), we also see the difference between these two values eventually converge to a value close to 0. (meaning our prediction of the optimal configuration is very close to the actual minimum configuration).  
 
 We also assess the model predictions themselves by calculating the difference in the energy that is predicted for a certain configuration vs the actual energy expended for that configuration. For these three functions, we see the model can eventually predict accurate energy values for a function given the function input and configuration of resources.
 
-However, for image processing and video processing, our results are far more unstable and don't show clear signs of convergence in any of these aspects. (energy over time, energy of predicted configuration vs minimum configuration, energy predicted by model vs ground truth energy). As we saw in the measurement study, the correlation between energy, function input, and vCPU count and frequency was more unpredictable/unclear compared to the previously discussed functions. Therefore, the model proved to have a more difficult time finding optimal resource configurations and had lower confidence in its predictions, leading to a higher amount of random configurations being chosen. 
+However, for image processing and video processing, our results are far more unstable and don't show clear signs of convergence in any of these aspects (energy over time, energy of predicted configuration vs minimum configuration, energy predicted by model vs ground truth energy). As we saw in the measurement study, the correlation between energy, function input, and vCPU count and frequency was more unpredictable/unclear compared to the previously discussed functions. Therefore, the model proved to have a more difficult time finding optimal resource configurations and had lower confidence in its predictions, leading to a higher amount of random configurations being chosen. 
 
 More details on this analysis can be found in Appendix \ref{appendix:regression_model_measurement_study}.
 
@@ -233,16 +235,16 @@ We adapted OpenWhisk to incorporate Gaussian Process Regression to drive a carbo
 
 The Gaussian Process Regression model is contained in a shim layer, called the EnergyModel. Whenever a user invokes a function, the EnergyModel determines the optimal vCPU and frequency allocation. The EnergyModel is trained online periodically at 30 second intervals.
 
-We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's current scheduler. There are multiple invoker nodes, each running at a different frequency, as shown in \ref{fig:adapted_ow_system_overview}. The EnergyScheduler uses the output of EnergyModel to determine which invoker to send the function invocation to. We base the EnergyScheduler's algorithm off of Shabri's scheduler \cite{sinha2024shabari}. EnergyScheduler is designed to mitigate cold starts by:
+We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's current scheduler. There are multiple invoker nodes, each running at a different frequency, as shown in Figure \ref{fig:adapted_ow_system_overview}. The EnergyScheduler uses the output of EnergyModel to determine which invoker to send the function invocation to. We base the EnergyScheduler's algorithm off of Shabri's scheduler \cite{sinha2024shabari}. EnergyScheduler is designed to mitigate cold starts by:
 
 \textbf{1. Prioritizing routing the invocation to warm containers: } The scheduler will receive the invocation and the predicted vCPU and frequency allocation from the EnergyModel. The scheduler will then iterate through the invokers running at at least the predicted frequency and attempt to find a warm container that is closest to the predicted vCPU allocation. If a warm container is found, the invocation is sent to that container. If no warm container is found, the invocation is send to the invoker running at the predicted frequency.
 
-\textbf{2. Preemptively spinning up containers: } In the case that the invocation is sent to an invoker running at higher than the predicted frequency or with more vCPUs than predicted, the scheduler will preemptively spin up a container on the invoker running at the predicted frequency with the predicted vCPU allocation. This is done to mitigate future cold starts and underutilization of resources. The underlying assumption is that function invocations exhibit temporal locality, meaning that in a short time frame, the same function is likely to be invoked again. Thus, preemptively spinning up a container will reduce the likelihood of cold starts for future invocations.
+\textbf{2. Preemptively spinning up containers: } In the case that the invocation is sent to an invoker running at higher than the predicted frequency or with more vCPUs than predicted, the scheduler will preemptively spin up a container on the invoker running at the predicted frequency with the predicted vCPU allocation. This is done to mitigate future cold starts and underutilization of resources. The underlying assumption is that function invocations exhibit temporal locality, meaning that in a short time frame, the same function is likely to be invoked again. Thus, preemptively spinning up a container will reduce the likelihood of cold starts for future invocations and underutilization of resources.
 
 \section{Evaluation}
 
 \subsection{Methodology}
-\textbf{Workloads.} We evaluate our system using functions shown in Table \ref{tab:summary_of_serverless_functions}. These are the same functions used in the measurement study. These functions vary in their parallelizability and resource requirements, making them suitable for evaluating the effectiveness of our system. We utilize the same trace used in Shabri \cite{sinha2024shabari} to simulate function invocations, which is a scaled down sample of the Azure trace. We utilize a requests per second (RPS) of 1 for the evaluation.
+\textbf{Workloads.} We evaluate our system using functions shown in Table \ref{tab:summary_of_serverless_functions}. These are the same functions used in the measurement study. These functions vary in their parallelizability and resource requirements, making them suitable for evaluating the effectiveness of our system. We utilize the same Azure trace used in Shabri \cite{sinha2024shabari} to simulate function invocations, which is a scaled down sample of the Azure trace. We utilize a requests per second (RPS) of 1 for the evaluation.
 
 \begin{table*}[htbp]
   \centering
@@ -261,34 +263,36 @@ We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's
 
 \textbf{Metrics.} For a high-level, comprehensive evaluation of our system compared to baseline models, we aggregate all of the energy readings for each function invocation for a specific function type (as the overall energy expended for that function) and compare these energy totals across each model. We also count the total number of SLO violations for each function type and compare this across all models as well.
 
-\textbf{Baselines.} We compare our system to two baselines Parrotfish and Aquatope. Parrotfish \cite{parrotfish} utilizes parametric regression to predict resource configuration, while Aquatope \cite{aquatope} uses Bayesian Optimization to predict resource configuration. Neither of the aforementioned baselines consider optimizing for energy efficiency. Furthermore, the original OpenWhisk's scheduler was used when running Parrotfish and Aquatope. Parrotfish only optimizes memory allocation; thus, we allocate CPU proportional to memory. Since our system only optimizes CPU and frequency, we run our system three times: 1. using Parrotfish's memory predictions, 2. using Aquatope's memory predictions, 3. constant value of 4096 bytes. We compare our system to these baselines in terms of energy consumption and SLO violations.
+\textbf{Baselines.} We compare our system to two baselines Parrotfish and Aquatope. Parrotfish \cite{parrotfish} utilizes parametric regression to predict resource configuration, while Aquatope \cite{aquatope} uses Bayesian Optimization to predict resource configuration. Neither of the aforementioned baselines consider optimizing for energy efficiency. Furthermore, the original OpenWhisk's scheduler was used when running Parrotfish and Aquatope. Parrotfish only optimizes memory allocation; thus, we allocate CPU proportional to memory. 
+
+\textbf{CASS.} Since our only optimizes CPU and frequency, we run our system with two memory configurations: 1. using Parrotfish's memory predictions (CASS\_Parrotfish), 2. using Aquatope's memory predictions (CASS\_Aquatope). We compare our system to the aforementioned baselines in terms of energy consumption and SLO violations.
 
 \subsection{Assessing the Efficacy of EnergyLiteDaemon for Collecting Energy Readings}
 
 Before running the full evaluation of our regression model and scheduler, we ran a preliminary evaluation of our energy measurement tool, EnergyLiteDaemon, on the Azure trace, in terms of how effectively and accurately it can collect energy readings for each function invocation. We compared its results to the original implementation of EnergAt.  
 
-As shown in Figure {idk}, EnergyLiteDaemon has far more invalid energy readings compared to Energat. Invalid is defined as a negative reading, which signifies that no energy measurements were collected during the lifecycle of that function invocation. The reason EnergyLiteDaemon has far more invalid readings is that unlike Energat, which has a dedicated process energy measurement process per active container, EnergyLiteDaemon only consists of a single process that loops through all the active containers and iteratively samples for energy for each container for a specified period of time. When there are hundreds or thousands of containers that are running simultaneously, there is a high likelihood that the EnergyLiteDaemon is not able to collect energy samples for functions with shorter durations before they run to completion. 
+As shown in Figure \ref{fig:energy_tool_efficacy}, EnergyLiteDaemon has far more invalid energy readings compared to EnergAt. Invalid is defined as a negative reading, which signifies that no energy measurements were collected during the lifecycle of that function invocation, or the energy measured was 0. The reason EnergyLiteDaemon has far more invalid readings is that unlike EnergAt, which has a dedicated process energy measurement process per active container, EnergyLiteDaemon only consists of a single process that loops through all the active containers and iteratively samples for energy for each container for a specified period of time. When there are hundreds of containers that are running simultaneously, there is a high likelihood that the EnergyLiteDaemon is not able to collect energy samples for functions with shorter durations before they complete. 
 
 \begin{figure}[H] % Note the use of figure* instead of figure
    \centering
    \begin{subfigure}[b]{0.4\textwidth} % Adjusted width to fit across two columns
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/valid_vs_invalid/EnergAt.png}
-         \caption{Energat}
-         \label{fig:a}
+         \caption{EnergAt}
+         \label{fig:energy_tool_efficacy_a}
    \end{subfigure}
    \begin{subfigure}[b]{0.4\textwidth} % Adjusted width
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/valid_vs_invalid/EnergyLiteDaemon.png}
          \caption{EnergyLiteDaemon}
-         \label{fig:b}
+         \label{fig:energy_tool_efficacy_b}
    \end{subfigure}
    
-   \caption{Comparing the number of invalid vs valid energy readings for EnergyDaemonLite and Energat}
-   \label{fig:energy_toy_example}
+   \caption{Comparing the number of invalid vs valid energy readings for EnergyDaemonLite and EnergAt}
+   \label{fig:energy_tool_efficacy}
 \end{figure}
 
-Though Energat is more computationally expensive and could lead to resource contention, for collecting accurate energy values, it was the most practical tool to incorporate into our system. To alleviate the issues associated with EnergyLiteDaemon, possible future steps that could be taken to improve the tool include reducing the energy sampling period and refining the interpolation technique used, and settling on a middle ground of having a separate process for each set of 20 or so containers, rather than having only 1 process or having 1 process per container. 
+Though EnergAt is more computationally expensive and could lead to resource contention, for collecting accurate energy values, it was the most practical tool to incorporate into our system. To alleviate the issues associated with EnergyLiteDaemon, possible future steps that could be taken to improve the tool include reducing the energy sampling period, refining the interpolation technique used, and settling on a middle ground of having a separate process for each set of 20 or so containers, rather than having only 1 process for all containers or having 1 process per container. Furthermore, the current implementation of EnergyLiteDaemon is in Python; rewriting it in a lower-level language such as C++ could also help speed up the process of collecting energy readings.
 
 
 
@@ -299,12 +303,12 @@ Though Energat is more computationally expensive and could lead to resource cont
 
 % \subsubsection{SLO Violations Comparison}
 
-\subsection{Results using Energat}
+\subsection{Results using EnergAt}
 
-For the rest of the evaluation, we used Energat as our energy measurement tool and evaluated the efficacy of our end-to-end system in terms of conserving energy while meeting SLOs. 
+Due to EnergyLiteDaemon's inability to collect accurate energy readings with many containers, for the rest of the evaluation, we used EnergAt as our energy measurement tool and evaluated the efficacy of our end-to-end system in terms of conserving energy while meeting SLOs. 
 
 \subsubsection{Energy Comparison}
-For a given specific function type, we add up the energy readings for each invocation that falls under the function and use that as the metric for the total amount of energy consumed for a given function. Figures {x} and {y} show the comparison between the Carbon Aware Serveless System (CASS) and Aquatope, as well as CASS and Parrotfish, respectively. 
+For a given specific function type, we add up the energy readings for each invocation and use that as the metric for the total amount of energy consumed for that function type. Figures \ref{fig:CASSvsAquatope} and \ref{fig:CASSvsParrotfish} show the comparison between the Carbon Aware Serveless System (CASS\_Aquatope) and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
 
 \begin{figure}[ht]
    \centering
@@ -320,13 +324,13 @@ For a given specific function type, we add up the energy readings for each invoc
    \label{fig:CASSvsParrotfish}
  \end{figure}
 
-As shown in the figures, the functions that are highly parallelizable and have a clear underlying correlation between the relevant input features and energy consumption, such as Float Matrix Multiplication and Linpack, see a reduction in energy consumption by almost 50\% compared to both baseline models. Encrypt sees comparable energy between the CASS and the two baselines, whereas Image Processing and Video Processing see worse energy consumptions compared to both baselines.
+As shown in the figures, the functions that are highly parallelizable and have a clear underlying correlation between the relevant input features (such as vCPU count) and energy consumption, such as Float Matrix Multiplication and Linpack, see a reduction in energy consumption by almost 50\% compared to both baseline models. Encrypt sees comparable energy between the CASS and the two baselines, whereas Image Processing and Video Processing see worse energy consumptions compared to both baselines.
 
 For Encrypt, as shown in our analysis of our model on the measurement study data, the model was able to converge to an optimal resource configuration (in terms of energy consumption) after several hundred invocations per function given a specific input. Because the Azure trace only contained a few hundred invocations per function type, and only a handful for a specific function input, we were not able to see the model learn to its full capacity. Given more function invocations to train on, we believe we could see a reduction in energy consumption comparable to Float Matrix Multiplication and Linpack.
 
 For Image Processing and Video Processing, we can likely attribute this decrease in performance in terms of energy consumption to the highly complex relationships between energy consumption as well as the function input and resources allocated. As discussed in the measurement study section, there are no clear trends or correlations that could be seen, and for the model to predict configurations with high confidence (if at all possible), it would require far more function invocations for it to learn from. We suspect that the model most likely provides the scheduler random configurations due to the low confidence in its predictions, leading to large fluctuations in energy consumption. 
 
-Additionally, if our energy prediction has low confidence, it does not attempt to optimize for other things such as CPU and memory utilization, or latency, which the other baseline models do. For future works, we could try to incorporate some sort of mechanism that can optimize the performance in a different aspect, if the energy model is not able to confidently make predictions to minimize energy, which could by proxy also help reduce the overall energy expended. 
+Additionally, if our energy prediction has low confidence, it does not attempt to optimize for other things such as CPU and memory utilization, or latency (since the model chooses a random configuration in this case), which the other baseline models do. For future works, we could try to incorporate some sort of mechanism that can optimize the performance in a different aspect, if the energy model is not able to confidently make predictions to minimize energy, which could by proxy also help reduce the overall energy expended. 
 
 \subsubsection{SLO Violations Comparison}
 
