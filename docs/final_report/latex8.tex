@@ -366,7 +366,7 @@ For each function type, we also calculate the number of invocations that violate
 
 Overall, CASS has slightly more SLO violations than the baseline models for the different function types. However, overall, the number is comparable across CASS and the baseline models, except for Linpack. 
 
-We can likely attribute the increase in SLO violations to the random configurations provided to the scheduler in the case of low confidence or generally poor predictions in early stages of training. For future works, we could try to incorporate a mechanism that can optimize the performance in a different aspect, such as increased CPU and memory utilization or lower latencies (similar to the baselines), if the energy model is not able to confidently make predictions to minimize energy. This could help reduce the total number of SLO violations. 
+We can likely attribute the increase in SLO violations to the random configurations provided to the scheduler in the case of low confidence or generally poor predictions in early stages of training. For future works, we could try to incorporate a mechanism that can optimize the performance in a different aspect, such as increased CPU and memory utilization or lower latencies (similar to the baselines), if the EnergyModel is not able to confidently make predictions to minimize energy. This could help reduce the total number of SLO violations. 
 \section{Discussion}
 
 \section{Conclusion}
