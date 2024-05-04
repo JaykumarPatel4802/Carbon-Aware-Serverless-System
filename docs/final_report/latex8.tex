@@ -265,7 +265,7 @@ We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's
   imageprocess & image & 374 & 64 & 916K - 30M \\ \hline
   videoprocess & video & 358 & 17 & 284K - 11M \\ \hline
   \end{tabular}
-  \caption{Summary of serverless functions studied.}
+  \caption{Summary of serverless functions used in experiment}
   \label{tab:summary_of_serverless_functions}
 \end{table*}
 
@@ -316,7 +316,7 @@ Though EnergAt is more computationally expensive and could lead to resource cont
 Due to EnergyLiteDaemon's inability to collect accurate energy readings with many containers, for the rest of the evaluation, we used EnergAt as our energy measurement tool and evaluated the efficacy of our end-to-end system in terms of conserving energy while meeting SLOs. 
 
 \subsubsection{Energy Comparison}
-For a given specific function type, we add up the energy readings for each invocation and use that as the metric for the total amount of energy consumed for that function type. Figures \ref{fig:CASSvsAquatope} and \ref{fig:CASSvsParrotfish} show the comparison between the Carbon Aware Serveless System (CASS\_Aquatope) and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
+For a given specific function type, we add up the energy readings for each invocation and use that as the metric for the total amount of energy consumed for that function type. Figures \ref{fig:cassvsaquatope_energy} and \ref{fig:cassvsparrotfish_energy} show the comparison between the Carbon Aware Serveless System (CASS\_Aquatope) and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
 
 
 \begin{figure}[H] % Note the use of figure* instead of figure
@@ -325,13 +325,13 @@ For a given specific function type, we add up the energy readings for each invoc
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/energy_comparison/aquatope/overall.png}
          \caption{Overall energy expended for CASS\_Aquatope vs Aquatope}
-         \label{fig:cassvsaquatope}
+         \label{fig:cassvsaquatope_energy}
    \end{subfigure}
    \begin{subfigure}[b]{0.5\textwidth} % Adjusted width
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/overall.png}
          \caption{Overall energy expended for CASS\_Parrotfish vs Parrotfish}
-         \label{fig:cassvsparrotfish}
+         \label{fig:cassvsparrotfish_energy}
    \end{subfigure}
    \end{figure}
 
@@ -339,11 +339,13 @@ As shown in the figures, the functions that are highly parallelizable and have a
 
 For Encrypt, as shown in our analysis of our model on the measurement study data, the model was able to converge to an optimal resource configuration (in terms of energy consumption) after several hundred invocations per function given a specific input. Because the Azure trace only contained a few hundred invocations per function type, and only a handful for a specific function input, we were not able to see the model learn to its full capacity. Given more function invocations to train on, we believe we could see a reduction in energy consumption comparable to Float Matrix Multiplication and Linpack.
 
-For Image Processing and Video Processing, we can likely attribute this decrease in performance in terms of energy consumption to the highly complex relationships between energy consumption and the function input and resources allocated. As discussed in the measurement study section, there are no clear trends or correlations that could be seen, and for the model to predict configurations with high confidence (if at all possible), it would require far more function invocations for it to learn from. After doing further analysis, we concluded that the model provides the scheduler random configurations due to the low confidence in its predictions, which is most likely what leads to large fluctuations in energy consumption. In our current implementation, if the configuration with the minimum energy has low confidence, we immediately choose a random configuration. For future improvements, we can instead check the top k configurations (where k is a hyperparameter) and choose the best configuration that meets the confidence threshold (and choose a random configuration if none of them meet the threshold), and see if this improves the energy expenditure of the overall system. 
+For Image Processing and Video Processing, we can likely attribute this decrease in performance in terms of energy consumption to the highly complex relationships between energy consumption and the function input and resources allocated. As discussed in the measurement study section, there are no clear trends or correlations that could be seen, and for the model to predict configurations with high confidence (if at all possible), it would require far more function invocations for it to learn from. 
+
+After doing further analysis, we concluded that the model provides the scheduler random configurations due to the low confidence in its energy predictions, which is most likely what leads to large fluctuations in energy consumption. In our current implementation, if the configuration with the minimum energy has low confidence, we immediately choose a random configuration. For future improvements, we can instead check the top k configurations (where k is a hyperparameter) and choose the best configuration that meets the confidence threshold (and choose a random configuration if none of them meet the threshold). This optimization may help improve the energy expenditure of the overall system. 
 
 \subsubsection{SLO Violations Comparison}
 
-For each function type, we also calculate the number of invocations that violate the specified SLO. Figures \ref{fig:CASSvsAquatope} and \ref{fig:CASSvsParrotfish} show the comparison between CASS\_Aquatope and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
+For each function type, we also calculate the number of invocations that violate the specified SLO. Figures \ref{fig:cassvsaquatope_slo} and \ref{fig:cassvsparrotfish_slo} show the comparison between CASS\_Aquatope and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
 
 
 \begin{figure}[H] % Note the use of figure* instead of figure
@@ -352,19 +354,19 @@ For each function type, we also calculate the number of invocations that violate
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/duration_comparison/aquatope.png}
          \caption{Number of SLO violations for CASS\_Aquatope vs Aquatope}
-         \label{fig:cassvsaquatope}
+         \label{fig:cassvsaquatope_slo}
    \end{subfigure}
    \begin{subfigure}[b]{0.5\textwidth} % Adjusted width
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/duration_comparison/parrotfish.png}
          \caption{Number of SLO violations for CASS\_Parrotfish vs Parrotfish}
-         \label{fig:cassvsparrotfish}
+         \label{fig:cassvsparrotfish_slo}
    \end{subfigure}
    \end{figure}
 
-Overall, CASS has slightly more SLO violations than the baseline models for the different function types. However, overall, the number is comparable across CASS and the baseline models. 
+Overall, CASS has slightly more SLO violations than the baseline models for the different function types. However, overall, the number is comparable across CASS and the baseline models, except for Linpack. 
 
-We can likely attribute the increase in SLO violations also to the random configurations provided to the scheduler in the case of low confidence or generally poor predictions in early stages of training.For future works, we could try to incorporate some sort of mechanism that can optimize the performance in a different aspect, such as increased CPU and memory utilization or lower latencies (similar to the baselines), if the energy model is not able to confidently make predictions to minimize energy. This could potentially help reduce the total number of SLO violations. 
+We can likely attribute the increase in SLO violations to the random configurations provided to the scheduler in the case of low confidence or generally poor predictions in early stages of training. For future works, we could try to incorporate a mechanism that can optimize the performance in a different aspect, such as increased CPU and memory utilization or lower latencies (similar to the baselines), if the energy model is not able to confidently make predictions to minimize energy. This could help reduce the total number of SLO violations. 
 \section{Discussion}
 
 \section{Conclusion}
