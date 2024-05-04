@@ -164,11 +164,15 @@ To perform the measurement study, we use OpenWhisk, which is an open-source serv
 
 A variety of workloads were run on different vCPU and frequency configurations. We collected the vCPU utilization, energy consumption, and performance in terms of duration. The resource configurations are shown in Table \ref{tab:mstudy1_configurations}.
 
-We then analyzed the data to understand how energy consumption varies with changes in vCPU and frequency allocation. For float matrix multiplication, energy usage initially decreases and then flat-lines as the vCPU allocation increases. This is because matrix multiplication is highly parallelizable and has high vCPU utilization, leading to a decrease in duration and energy usage. For image processing, energy usage has no apparent correlation with vCPU allocation, likely because most of the image processing tasks are non-parallelizable. For encryption, energy usage, duration, and vCPU utilization do not change with vCPU allocation because encryption is also non-parallelizable and does not benefit from additional vCPUs.
+We then analyzed the data to understand how energy consumption varies with changes in vCPU and frequency allocation. For float matrix multiplication, energy usage initially decreases and then tends to plateau as the vCPU allocation increases. This is because matrix multiplication is highly parallelizable and has high vCPU utilization, leading to a decrease in duration and energy usage. For image processing, energy usage has no apparent correlation with vCPU allocation, likely because most of the image processing tasks are non-parallelizable. For encryption, energy usage, duration, and vCPU utilization do not change with vCPU allocation because encryption is also non-parallelizable and does not benefit from additional vCPUs.
 
-For both types of functions, energy consumption as a function of frequency displays a convex curve, where energy consumption decreases with frequency until a certain point (which varies between different functions and function inputs), and then begins to increase again. This is because the energy consumption per time unit of a vCPU is proportional to the frequency at which it runs, but the overall duration of the function is inversely proportional to the frequency at which the vCPU runs. More details on the results can be found in Appendix \ref{appendix:energy_variation_vcpu_frequency}.
+For both types of functions, energy consumption as a function of frequency displays a convex relationship, where energy consumption decreases with frequency until a certain point (which varies between different functions and function inputs), and then begins to increase again. This is because the energy consumption per time unit of a vCPU is proportional to the frequency at which it runs, but the overall duration of the function is inversely proportional to the frequency at which the vCPU runs. 
 
-These trends support the idea that we can use machine learning to learn the relationship between vCPU, frequency, and energy consumption, and use this model to minimize energy consumption while meeting SLOs.
+For functions that are non-paralellizable, we wanted to assess whether the optimal frequency to run an invocation is the same across all function inputs (since vCPU count is not as big of a factor as in parallelizable functions). However, across various inputs. we found that the frequency that results in minimum energy expended varies. 
+
+All of these findings support the idea that we should use machine learning to learn the relationship between vCPU, frequency, and energy consumption, and use this model to minimize energy consumption while meeting SLOs.
+
+More details on the results can be found in Appendix \ref{appendix:energy_variation_vcpu_frequency}.
 
 \subsection{Energy Consumption Over the Lifecycle of a Serverless Function Invocation}
 Additionally, we ran a variety of docker images, each of a different size, with a variety of vCPU and memory configurations to investigate carbon emissions of different stages of the container lifecycle. For each (image, vCPU, memory) configuration, we measured the energy consumption at different stages of the function invocation lifecycle. More specifically, we measured the energy consumed during the container spin-up, the idle time, and the container spin-down.
@@ -191,13 +195,17 @@ Due to our findings of little to no correlations, we decided to not pursue a car
 Our final system, Carbon Aware Serverless System (CASS), consists of two main components: a machine learning model that predicts the optimal vCPU count and frequency for a given function invocation, and a custom scheduler that attempts to route the invocation to a warm container with or greater than the predicted vCPU count and frequency.
 
 \subsection{Machine Learning Model}
-To implement a machine learning model to minimize carbon emissions, we utilize a Gaussian Process Regressor (GPR), similar to \cite{aquatope}. We optimize for vCPU allocation and operational frequency to try and minimize carbon emissions, while setting SLOs as our constraint. Since we have collected data on 5 different functions and each function has different usage patterns, we have a separate model for each function. Each function's input is encoded into an input vector for the regression model, and the vCPU count and frequency are concatenated to this input vector.
+To implement a machine learning model to minimize carbon emissions, we utilize a Gaussian Process Regressor (GPR), similar to Aquatope\cite{aquatope}. GPR uses the same mathematical foundation as Bayesian Optimization (BO), resulting in it having the same advantages as BO, including not needing a lot of data points to train and having online learning capabilities. In addition, by using the regression model, we can use the vectorized function input as an additional feature for the model and test different resource configurations while fixing the function input to find the minimum energy for a specific invocation. In our final implementation, we utilize the Matern kernel, which offers more flexibility in modeling smoothness and can help better capture relationships between different inputs when the function is not smooth everywhere, and the white kernel, to model noise. 
+
+Using our model, we optimize for vCPU allocation and operational frequency to try and minimize carbon emissions, while setting SLOs as our constraint. Since we have collected data on 5 different functions and each function has different usage patterns, we have a separate model for each function. Each function's input is encoded into an input vector for the regression model, and the vCPU count and frequency are concatenated to this input vector.
 
 When a function is invoked, after the input feature vector is constructed, we perform an iterative process in which we go through all possible resource configurations (in terms of vCPU count and frequency) and predict the energy consumption and duration for that specific function and function input given the configuration. Given these predictions, we filter the results that were predicted to violate SLOs, and choose the vCPU count and frequency configuration that minimizes the energy consumption. 
 
 Since our model is trained from scratch, early inferences by the model will have lower confidence. To encourage exploration of the feature space in early invocations of a function and allow the model to see a more diverse set of data points for training, we set the value for a confidence threshold that the model prediction should meet. In the case that the prediction is not confident, we sample a random configuration of resources for the invocation to run at. 
 
 Simultaneously, we have a background thread that is periodically polling a database that receives observed energy and latency readings from our invokers and uses this as training data to train our models, to utilize online learning. This, however, is not on the critical path.
+
+
 
 A diagram of the machine learning model is shown in Figure \ref{fig:ml_model}.
 
@@ -275,13 +283,13 @@ As shown in Figure \ref{fig:energy_tool_efficacy}, EnergyLiteDaemon has far more
 
 \begin{figure}[H] % Note the use of figure* instead of figure
    \centering
-   \begin{subfigure}[b]{0.4\textwidth} % Adjusted width to fit across two columns
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width to fit across two columns
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/valid_vs_invalid/EnergAt.png}
          \caption{EnergAt}
          \label{fig:energy_tool_efficacy_a}
    \end{subfigure}
-   \begin{subfigure}[b]{0.4\textwidth} % Adjusted width
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width
          \centering
          \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/valid_vs_invalid/EnergyLiteDaemon.png}
          \caption{EnergyLiteDaemon}
@@ -310,31 +318,53 @@ Due to EnergyLiteDaemon's inability to collect accurate energy readings with man
 \subsubsection{Energy Comparison}
 For a given specific function type, we add up the energy readings for each invocation and use that as the metric for the total amount of energy consumed for that function type. Figures \ref{fig:CASSvsAquatope} and \ref{fig:CASSvsParrotfish} show the comparison between the Carbon Aware Serveless System (CASS\_Aquatope) and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
 
-\begin{figure}[ht]
-   \centering
-   \includegraphics[width=0.45\textwidth]{imgs/final_experiment_plots/energy_comparison/aquatope/overall.png}
-   \caption{Overall energy expended for CASS vs Aquatope}
-   \label{fig:CASSvsAquatope}
- \end{figure}
 
- \begin{figure}[ht]
+\begin{figure}[H] % Note the use of figure* instead of figure
    \centering
-   \includegraphics[width=0.45\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/overall.png}
-   \caption{Overall energy expended for CASS vs Parrotfish}
-   \label{fig:CASSvsParrotfish}
- \end{figure}
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width to fit across two columns
+         \centering
+         \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/energy_comparison/aquatope/overall.png}
+         \caption{Overall energy expended for CASS\_Aquatope vs Aquatope}
+         \label{fig:cassvsaquatope}
+   \end{subfigure}
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width
+         \centering
+         \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/overall.png}
+         \caption{Overall energy expended for CASS\_Parrotfish vs Parrotfish}
+         \label{fig:cassvsparrotfish}
+   \end{subfigure}
+   \end{figure}
 
 As shown in the figures, the functions that are highly parallelizable and have a clear underlying correlation between the relevant input features (such as vCPU count) and energy consumption, such as Float Matrix Multiplication and Linpack, see a reduction in energy consumption by almost 50\% compared to both baseline models. Encrypt sees comparable energy between the CASS and the two baselines, whereas Image Processing and Video Processing see worse energy consumptions compared to both baselines.
 
 For Encrypt, as shown in our analysis of our model on the measurement study data, the model was able to converge to an optimal resource configuration (in terms of energy consumption) after several hundred invocations per function given a specific input. Because the Azure trace only contained a few hundred invocations per function type, and only a handful for a specific function input, we were not able to see the model learn to its full capacity. Given more function invocations to train on, we believe we could see a reduction in energy consumption comparable to Float Matrix Multiplication and Linpack.
 
-For Image Processing and Video Processing, we can likely attribute this decrease in performance in terms of energy consumption to the highly complex relationships between energy consumption as well as the function input and resources allocated. As discussed in the measurement study section, there are no clear trends or correlations that could be seen, and for the model to predict configurations with high confidence (if at all possible), it would require far more function invocations for it to learn from. We suspect that the model most likely provides the scheduler random configurations due to the low confidence in its predictions, leading to large fluctuations in energy consumption. 
-
-Additionally, if our energy prediction has low confidence, it does not attempt to optimize for other things such as CPU and memory utilization, or latency (since the model chooses a random configuration in this case), which the other baseline models do. For future works, we could try to incorporate some sort of mechanism that can optimize the performance in a different aspect, if the energy model is not able to confidently make predictions to minimize energy, which could by proxy also help reduce the overall energy expended. 
+For Image Processing and Video Processing, we can likely attribute this decrease in performance in terms of energy consumption to the highly complex relationships between energy consumption and the function input and resources allocated. As discussed in the measurement study section, there are no clear trends or correlations that could be seen, and for the model to predict configurations with high confidence (if at all possible), it would require far more function invocations for it to learn from. After doing further analysis, we concluded that the model provides the scheduler random configurations due to the low confidence in its predictions, which is most likely what leads to large fluctuations in energy consumption. In our current implementation, if the configuration with the minimum energy has low confidence, we immediately choose a random configuration. For future improvements, we can instead check the top k configurations (where k is a hyperparameter) and choose the best configuration that meets the confidence threshold (and choose a random configuration if none of them meet the threshold), and see if this improves the energy expenditure of the overall system. 
 
 \subsubsection{SLO Violations Comparison}
 
+For each function type, we also calculate the number of invocations that violate the specified SLO. Figures \ref{fig:CASSvsAquatope} and \ref{fig:CASSvsParrotfish} show the comparison between CASS\_Aquatope and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
 
+
+\begin{figure}[H] % Note the use of figure* instead of figure
+   \centering
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width to fit across two columns
+         \centering
+         \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/duration_comparison/aquatope.png}
+         \caption{Number of SLO violations for CASS\_Aquatope vs Aquatope}
+         \label{fig:cassvsaquatope}
+   \end{subfigure}
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width
+         \centering
+         \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/duration_comparison/parrotfish.png}
+         \caption{Number of SLO violations for CASS\_Parrotfish vs Parrotfish}
+         \label{fig:cassvsparrotfish}
+   \end{subfigure}
+   \end{figure}
+
+Overall, CASS has slightly more SLO violations than the baseline models for the different function types. However, overall, the number is comparable across CASS and the baseline models. 
+
+We can likely attribute the increase in SLO violations also to the random configurations provided to the scheduler in the case of low confidence or generally poor predictions in early stages of training.For future works, we could try to incorporate some sort of mechanism that can optimize the performance in a different aspect, such as increased CPU and memory utilization or lower latencies (similar to the baselines), if the energy model is not able to confidently make predictions to minimize energy. This could potentially help reduce the total number of SLO violations. 
 \section{Discussion}
 
 \section{Conclusion}
