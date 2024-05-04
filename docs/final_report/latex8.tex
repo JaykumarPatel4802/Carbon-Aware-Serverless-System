@@ -170,7 +170,7 @@ We then analyzed the data to understand how energy consumption varies with chang
 
 For both types of functions, energy consumption as a function of frequency displays a convex relationship, where energy consumption decreases with frequency until a certain point (which varies between different functions and function inputs), and then begins to increase again. This is because the energy consumption per time unit of a vCPU is proportional to the frequency at which it runs, but the overall duration of the function is inversely proportional to the frequency at which the vCPU runs. 
 
-For functions that are non-paralellizable, we wanted to assess whether the optimal frequency to run an invocation is the same across all function inputs (since vCPU count is not as big of a factor as in parallelizable functions). However, across various inputs. we found that the frequency that results in minimum energy expended varies. 
+For functions that are non-parallelizable, we wanted to assess whether the optimal frequency to run an invocation is the same across all function inputs (since vCPU count is not as big of a factor as in parallelizable functions). However, across various inputs, we found that the frequency that results in minimum energy expended varies. 
 
 All of these findings support the idea that we should use machine learning to learn the relationship between vCPU, frequency, and energy consumption, and use this model to minimize energy consumption while meeting SLOs.
 
@@ -182,15 +182,6 @@ Additionally, we ran a variety of docker images, each of a different size, with 
 After collecting and analyzing the data, we first found that for each stage of the lifecycle we measured, when changing the vCPU and memory configurations, the energy consumption did not vary significantly. This was true for all image sizes. This is likely due to the fact that these resources will not actually be allocated to the container until the compute inside the container requires them. We did notice that if we varied the image size, the energy consumption of the container spin-up process significantly increased as the image size increased. However, it is worth noting that most of the energy consumption of the spin-up is accredited to the `docker pull' process, which would only be a one-time operation. The `docker run' does not consume a significant amount of energy and does not show any statistical correlation. For the idle time, we noticed a strange negative correlation trend with the image size, and for the spin-down, we noticed a somewhat positive correlation with a few outlier points. Since we only used a few image sizes, we cannot definitively conclude that these trends will extrapolate.
 
 Due to our findings of little to no correlations, we decided to not pursue a carbon-aware keep-alive policy further. More details on the study can be found in Appendix \ref{appendix:energy_variation_vcpu_memory}.
-
-% \section{Tentative System Overview}
-
-
-% \section{Experimental Setup}
-
-
-% \section{Results}
-
 
 \section{Final System}
 
@@ -223,7 +214,7 @@ In order to analyze the effectiveness of our model and tune hyperparameters, suc
 
 Every ten seconds, we ``invoke" a function with a certain function input and send this information to the model, which vectorizes the function input features and finds the optimal resource configuration that meets SLOs. Our model is trained simultaneously in a background thread every 30 seconds. 
  
-For Float Matrix Multiplication, Linpack, and Encrypt, our model is able to eventually converge to a minimum energy value after training on a certain number of invocations and learning from the patterns that it sees overtime. We analyze the energy expended over time for each function invocation (for a few function inputs) and see a clear convergence for these three functions (in figures. When comparing the energy consumption of the predicted configuration to the energy of the known minimum configuration (from our ground truth values), we also see the difference between these two values eventually converge to a value close to 0. (meaning our prediction of the optimal configuration is very close to the actual minimum configuration). 
+For Float Matrix Multiplication, Linpack, and Encrypt, our model is able to eventually converge to a minimum energy value after training on a certain number of invocations and learning from the patterns that it sees overtime. We analyze the energy expended over time for each function invocation (for a few function inputs) and see a clear convergence for these three functions. When comparing the energy consumption of the predicted configuration to the energy of the known minimum configuration (from our ground truth values), we also see the difference between these two values eventually converge to a value close to 0. (meaning our prediction of the optimal configuration is very close to the actual minimum configuration). 
 
 We also assess the model predictions themselves by calculating the difference in the energy that is predicted for a certain configuration vs the actual energy expended for that configuration. For these three functions, we see the model can eventually predict accurate energy values for a function given the function input and configuration of resources.
 
@@ -247,7 +238,7 @@ The Gaussian Process Regression model is contained in a shim layer, called the E
 
 We created a custom scheduler, called EnergyScheduler, that replaces OpenWhisk's current scheduler. There are multiple invoker nodes, each running at a different frequency, as shown in Figure \ref{fig:adapted_ow_system_overview}. The EnergyScheduler uses the output of EnergyModel to determine which invoker to send the function invocation to. We base the EnergyScheduler's algorithm off of Shabri's scheduler \cite{sinha2024shabari}. EnergyScheduler is designed to mitigate cold starts by:
 
-\textbf{1. Prioritizing routing the invocation to warm containers: } The scheduler will receive the invocation and the predicted vCPU and frequency allocation from the EnergyModel. The scheduler will then iterate through the invokers running at at least the predicted frequency and attempt to find a warm container that is closest to the predicted vCPU allocation. If a warm container is found, the invocation is sent to that container. If no warm container is found, the invocation is send to the invoker running at the predicted frequency.
+\textbf{1. Prioritizing routing the invocation to warm containers: } The scheduler will receive the invocation and the predicted vCPU and frequency allocation from the EnergyModel. The scheduler will then iterate through the invokers running at at least the predicted frequency and attempt to find a warm container that is closest to the predicted vCPU allocation. If a warm container is found, the invocation is sent to that container. If no warm container is found, the invocation is sent to the invoker running at the predicted frequency.
 
 \textbf{2. Preemptively spinning up containers: } In the case that the invocation is sent to an invoker running at higher than the predicted frequency or with more vCPUs than predicted, the scheduler will preemptively spin up a container on the invoker running at the predicted frequency with the predicted vCPU allocation. This is done to mitigate future cold starts and underutilization of resources. The underlying assumption is that function invocations exhibit temporal locality, meaning that in a short time frame, the same function is likely to be invoked again. Thus, preemptively spinning up a container will reduce the likelihood of cold starts for future invocations and underutilization of resources.
 
@@ -304,15 +295,6 @@ As shown in Figure \ref{fig:energy_tool_efficacy}, EnergyLiteDaemon has far more
 
 Though EnergAt is more computationally expensive and could lead to resource contention, for collecting accurate energy values, it was the most practical tool to incorporate into our system. To alleviate the issues associated with EnergyLiteDaemon, possible future steps that could be taken to improve the tool include reducing the energy sampling period, refining the interpolation technique used, and settling on a middle ground of having a separate process for each set of 20 or so containers, rather than having only 1 process for all containers or having 1 process per container. Furthermore, the current implementation of EnergyLiteDaemon is in Python; rewriting it in a lower-level language such as C++ could also help speed up the process of collecting energy readings.
 
-
-
-% \subsection{Results using EnergyLiteDaemon}
-% We ran the experiment for Parrotfish, Aquatope, and our system, where EnergyLiteDaemon was used to collect energy consumption data.
-
-% \subsubsection{Energy Comparison}
-
-% \subsubsection{SLO Violations Comparison}
-
 \subsection{Results using EnergAt}
 
 Due to EnergyLiteDaemon's inability to collect accurate energy readings with many containers, for the rest of the evaluation, we used EnergAt as our energy measurement tool and evaluated the efficacy of our end-to-end system in terms of conserving energy while meeting SLOs. 
@@ -335,7 +317,8 @@ For a given specific function type, we add up the energy readings for each invoc
          \caption{Overall energy expended for CASS\_Parrotfish vs Parrotfish}
          \label{fig:cassvsparrotfish_energy}
    \end{subfigure}
-   \end{figure}
+   \caption{}
+\end{figure}
 
 As shown in the figures, the functions that are highly parallelizable and have a clear underlying correlation between the relevant input features (such as vCPU count) and energy consumption, such as Float Matrix Multiplication and Linpack, see a reduction in energy consumption by almost 50\% compared to both baseline models. Encrypt sees comparable energy between the CASS and the two baselines, whereas Image Processing and Video Processing see worse energy consumptions compared to both baselines.
 
@@ -366,7 +349,8 @@ For each function type, we also calculate the number of invocations that violate
          \caption{Number of SLO violations for CASS\_Parrotfish vs Parrotfish}
          \label{fig:cassvsparrotfish_slo}
    \end{subfigure}
-   \end{figure}
+   \caption{}
+\end{figure}
 
 Overall, CASS has slightly more SLO violations than the baseline models for the different function types. However, overall, the number is comparable across CASS and the baseline models, except for Linpack. 
 
@@ -392,21 +376,22 @@ Since the model has to make predictions for every possible resource configuratio
          \caption{Prediction overhead for CASS\_Parrotfish}
          \label{fig:cass_parrotfish_overhead}
    \end{subfigure}
-   \end{figure}
+   \caption{}
+\end{figure}
 
 
 \section{Discussion}
-\textbf{EnergyLiteDaemon} As discussed briefly, EnergyLiteDaemon was not effective in collecting energy measurements for a large number of containers running simultaneously. Though Energat provides more accurate, realistic results, it introduces high overhead and resource contention, which may not be scalable as the the RPS increases significantly. Future works would involve an improved energy collection method, which includes using C++ instead of Python and using an EnergyLiteDaemon process for a fixed number of containers, and adding new EnergyLiteDaemon processes for more containers. 
+\textbf{EnergyLiteDaemon:} As discussed previously, EnergyLiteDaemon was not effective in collecting energy measurements for a large number of containers running simultaneously, which prompted us to switch back to EnergAt. Though EnergAt provides more accurate, realistic results, it introduces high overhead and resource contention, which may not be scalable as the RPS increases significantly in real systems. Future works would involve an improved energy collection method, which includes using C++ instead of Python and using an EnergyLiteDaemon process for a fixed number of containers, and adding new EnergyLiteDaemon processes for more containers. 
 
-\textbf{Model Improvement.} Our model currently works well for improving energy consumption of functions such as Float Matrix Multiplication and Linpack, which have more straightforward correlations between resource configurations and energy usage. Future works would entail improving the model to be able to capture more complex relationships, which would improve the predictions for Image Process, Video Process, and Encrypt. Some ways to improve the model would be to refine the way the model handles predictions with low confidence; rather than defaulting to a random configuration if the best configuration has low confidence, we can assess the next best configuration as well. We can also perform a deeper analysis of the input features that have the biggest impact on the predictions made by the model and introduce some type of feature extraction or feature engineering to construct more informative inputs. 
+\textbf{Model Improvement:} Our model currently works well for improving energy consumption of functions such as Float Matrix Multiplication and Linpack, which have more straightforward correlations between resource configurations and energy usage. Future works would entail improving the model to be able to capture more complex relationships, which would improve the predictions for Image Process, Video Process, and Encrypt. Some ways to improve the model would be to refine the way the model handles predictions with low confidence; rather than defaulting to a random configuration if the best configuration has low confidence, we can assess the next best configuration as well. We can also perform a deeper analysis of the input features that have the biggest impact on the predictions made by the model and introduce some type of feature extraction or feature engineering to construct more informative inputs. 
 
-\textbf{Practicality of End-to-End System} In our system currently, each invoker runs at a specific frequency, and invocations are sent to the invoker running at the frequency predicted by the model. This approach is not as practical if the number of invocations is scaled up significantly and invocations get routed to the same invokers repeatedly and cause increased traffic, which could occur due to temporal locality, which is when similar invocations are likely to occur multiple times. Instead, we can dynamically scale frequency by  by pinning containers to cores running at certain frequencies, where multiple cores may run at multiple frequencies on a single machine. This can also help prevent underutilization of resources and improve SLO attainment.
+\textbf{Practicality of End-to-End System} In our system currently, each invoker runs at a specific frequency, and invocations are sent to the invoker running at the frequency predicted by the model. This approach is not as practical if the number of invocations is scaled up significantly and invocations get routed to the same invokers repeatedly and cause increased traffic, which could occur due to temporal locality, which is when similar invocations are likely to occur multiple times. Instead, we can dynamically scale frequency by pinning containers to cores running at certain frequencies, where multiple cores may run at multiple frequencies on a single machine. This can also help prevent under-utilization of resources and improve SLO attainment.
 
 Additionally, currently, the EnergyModel sequentially makes inferences for all CPU and frequency configurations, which introduces an overhead of up to 35ms on average. To alleviate this overhead, we can multithreaded the inference process on the controller side, which is an optimization that can reduce the overall latency of the critical path of the function invocation. 
 
 \section{Conclusion}
 
-In this paper, we introduce CASS, a Carbon Aware Serverless system that aims to minimize the carbon footprint of function invocations while continuing to meet service-level objectives. Throughout this work, we explore tools to collect energy measurements on a process-level, run a measurement study on different functions with various resource configurations to understand underlying patterns, and build an end-to-end system consisting of a Gaussian Process Regressor to predict the optimal resource configuration that minimizes energy and an Energy-Aware scheduler that routes the invocation to the correct invoker. Our evaluation shows that for functions with clear correlation between function inputs, resources, and energy expended, we can reduce the energy consumption by almost 50\% compared to existing baselines, while have comparable performance in terms of meeting SLO requirements. 
+In this paper, we introduce CASS, a Carbon Aware Serverless system that aims to minimize the carbon footprint of function invocations while continuing to meet service-level objectives. Throughout this work, we explore tools to collect energy measurements on a process-level, run a measurement study on different functions with various resource configurations to understand underlying patterns, and build an end-to-end system consisting of a Gaussian Process Regressor to predict the optimal resource configuration that minimizes energy and an Energy-Aware scheduler that routes the invocation to the correct invoker. Our evaluation shows that for functions with clear correlation between function inputs, resources, and energy expended, we can reduce the energy consumption by almost 50\% compared to existing baselines, while having comparable performance in terms of meeting SLO requirements. 
 
 
 % \section{Conclusion}
@@ -517,7 +502,7 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
 
  \subsection{Energy Variation for Different Stages of a Serverless Function Invocation}
  \label{appendix:energy_variation_vcpu_memory}
- We can see here the energy consumption of the container spin-up, idle time, and container spin-down for different image sizes in Figure \ref{fig:energy_stages}. 
+ We can see that the energy consumption of the container spin-up, idle time, and container spin-down for different image sizes in Figure \ref{fig:energy_stages}. 
 
  \begin{figure*}[ht]
    \centering
@@ -593,7 +578,7 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
  \subsection{Evaluation of the Performance of Gaussian Process Regression Model on Measurement Study Data }
  \label{appendix:regression_model_measurement_study}
 
- For each function type and a few fixed input, we can see the energy per invocation over time, along with the difference between the predicted energy and the actual energy of the output configuration, and the difference between the actual energy of the output configuration and the ground truth minimum n Figure \ref{fig:model_performance_measurement_study}
+ For each function type and a few fixed input, we can see the energy per invocation over time, along with the difference between the predicted energy and the actual energy of the output configuration, and the difference between the actual energy of the output configuration and the ground truth minimum in Figure \ref{fig:model_performance_measurement_study_} and \ref{fig:model_performance_measurement_study}
 
 
 \begin{figure*}[ht]
@@ -657,7 +642,14 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
      \caption{}
      \label{fig:encrypt_compare_min}
    \end{subfigure}
-   
+
+   \caption{For each Floatmatmult, Encrypt, and Linpack: 1) Energy of a function invocation over time 2) Difference predicted energy and actual energy for predicted configuration for invocation over time 3) Difference between energy of predicted configuration and ground truth minimum energy for invocation over time}
+   \label{fig:model_performance_measurement_study_}
+\end{figure*}
+\begin{figure*}[ht]
+   \centering
+   \newpage
+   \newpage
    % Fourth row of plots
    \textbf{Image Processing}\par\medskip
    \begin{subfigure}[b]{0.22\textwidth}
@@ -698,7 +690,7 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
      \label{fig:video_compare_min}
    \end{subfigure}
    
-   \caption{For each function type: 1) Energy of a function invocation over time 2) Difference predicted energy and actual energy for predicted configuration for invocation over time 3) Difference between energy of predicted configuration and ground truth minimum energy for invocation over time}
+   \caption{For each Image Processing and Video Processing: 1) Energy of a function invocation over time 2) Difference predicted energy and actual energy for predicted configuration for invocation over time 3) Difference between energy of predicted configuration and ground truth minimum energy for invocation over time}
    \label{fig:model_performance_measurement_study}
  \end{figure*}
 
@@ -707,7 +699,7 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
  \subsection{Evaluation of the End-to-End System on an Azure Trace}
  \label{appendix:end-to-end_analysis}
 
- Figure \ref{fig:end_to_end_per_invocation} shows the energy difference per invocation of a function type between CASS and the two baselines. 
+ Figure \ref{fig:end_to_end_per_invocation_} and \ref{fig:end_to_end_per_invocation} shows the energy difference per invocation of a function type between CASS and the two baselines, Aquatope and Parrotfish. 
 
  \begin{figure*}[ht]
    \centering
@@ -725,7 +717,7 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
      \label{fig:matmult_energy_diff_aquatope}
    \end{subfigure}
    
-   Second row of plots
+   % Second row of plots
    \textbf{Linpack}\par\medskip
    \begin{subfigure}[b]{0.4\textwidth}
       \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/linpack.png}
@@ -753,7 +745,7 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
      \label{fig:encrypt_energy_diff_aquatope}
    \end{subfigure}
    
-   % \caption{For different function types, we show the energy difference per invocation between CASS and 1) Parrotfish and 2) Aquatope}
+   \caption{For Floatmatmult, Encrypt, and Linpack, we show the energy difference per invocation between CASS and 1) Parrotfish and 2) Aquatope}
    \label{fig:end_to_end_per_invocation_}
  \end{figure*}
 
@@ -775,7 +767,6 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
      \label{fig:image_energy_diff_aquatope}
    \end{subfigure}
 
-   Fifth row of plots
    \textbf{Video Processing}\par\medskip
    \begin{subfigure}{0.4\textwidth}
       \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/videoprocess.png}
@@ -788,7 +779,7 @@ The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Enc
      \caption{}
      \label{fig:video_energy_diff_aquatope}
    \end{subfigure}
-   \caption{For different function types, we show the energy difference per invocation between CASS and 1) Parrotfish and 2) Aquatope}
+   \caption{For Image Processing and Video Processing, we show the energy difference per invocation between CASS and 1) Parrotfish and 2) Aquatope}
    \label{fig:end_to_end_per_invocation}
    
 \end{figure*}
