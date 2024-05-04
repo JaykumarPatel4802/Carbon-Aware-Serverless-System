@@ -17,6 +17,8 @@
 \usepackage{adjustbox}
 \usepackage{enumitem}
 \usepackage{float}
+\usepackage{afterpage}
+\usepackage{lscape}
 
 %------------------------------------------------------------------------- 
 % take the % away on next line to produce the final camera-ready version 
@@ -221,13 +223,13 @@ In order to analyze the effectiveness of our model and tune hyperparameters, suc
 
 Every ten seconds, we ``invoke" a function with a certain function input and send this information to the model, which vectorizes the function input features and finds the optimal resource configuration that meets SLOs. Our model is trained simultaneously in a background thread every 30 seconds. 
  
-For Float Matrix Multiplication, Linpack, and Encrypt, our model is able to eventually converge to a minimum energy value after training on a certain number of invocations and learning from the patterns that it sees overtime. We analyze the energy expended over time for each function invocation (for a few function inputs) and see a clear convergence for these three functions. When comparing the energy consumption of the predicted configuration to the energy of the known minimum configuration (from our ground truth values), we also see the difference between these two values eventually converge to a value close to 0. (meaning our prediction of the optimal configuration is very close to the actual minimum configuration).  
+For Float Matrix Multiplication, Linpack, and Encrypt, our model is able to eventually converge to a minimum energy value after training on a certain number of invocations and learning from the patterns that it sees overtime. We analyze the energy expended over time for each function invocation (for a few function inputs) and see a clear convergence for these three functions (in figures. When comparing the energy consumption of the predicted configuration to the energy of the known minimum configuration (from our ground truth values), we also see the difference between these two values eventually converge to a value close to 0. (meaning our prediction of the optimal configuration is very close to the actual minimum configuration). 
 
 We also assess the model predictions themselves by calculating the difference in the energy that is predicted for a certain configuration vs the actual energy expended for that configuration. For these three functions, we see the model can eventually predict accurate energy values for a function given the function input and configuration of resources.
 
 However, for image processing and video processing, our results are far more unstable and don't show clear signs of convergence in any of these aspects (energy over time, energy of predicted configuration vs minimum configuration, energy predicted by model vs ground truth energy). As we saw in the measurement study, the correlation between energy, function input, and vCPU count and frequency was more unpredictable/unclear compared to the previously discussed functions. Therefore, the model proved to have a more difficult time finding optimal resource configurations and had lower confidence in its predictions, leading to a higher amount of random configurations being chosen. 
 
-More details on this analysis can be found in Appendix \ref{appendix:regression_model_measurement_study}.
+The figures that contain details on this analysis can be found in Appendix \ref{appendix:regression_model_measurement_study}.
 
 
 \subsection{Adapting OpenWhisk}
@@ -343,6 +345,8 @@ For Image Processing and Video Processing, we can likely attribute this decrease
 
 After doing further analysis, we concluded that the model provides the scheduler random configurations due to the low confidence in its energy predictions, which is most likely what leads to large fluctuations in energy consumption. In our current implementation, if the configuration with the minimum energy has low confidence, we immediately choose a random configuration. For future improvements, we can instead check the top k configurations (where k is a hyperparameter) and choose the best configuration that meets the confidence threshold (and choose a random configuration if none of them meet the threshold). This optimization may help improve the energy expenditure of the overall system. 
 
+Figures containing the energy difference between CASS and the baselines for each function invocation in the trace can be found in \ref{appendix:end-to-end_analysis}
+
 \subsubsection{SLO Violations Comparison}
 
 For each function type, we also calculate the number of invocations that violate the specified SLO. Figures \ref{fig:cassvsaquatope_slo} and \ref{fig:cassvsparrotfish_slo} show the comparison between CASS\_Aquatope and Aquatope, as well as CASS\_Parrotfish and Parrotfish, respectively. 
@@ -367,9 +371,43 @@ For each function type, we also calculate the number of invocations that violate
 Overall, CASS has slightly more SLO violations than the baseline models for the different function types. However, overall, the number is comparable across CASS and the baseline models, except for Linpack. 
 
 We can likely attribute the increase in SLO violations to the random configurations provided to the scheduler in the case of low confidence or generally poor predictions in early stages of training. For future works, we could try to incorporate a mechanism that can optimize the performance in a different aspect, such as increased CPU and memory utilization or lower latencies (similar to the baselines), if the EnergyModel is not able to confidently make predictions to minimize energy. This could help reduce the total number of SLO violations. 
+
+
+
+\subsubsection{Model Overhead}
+
+Since the model has to make predictions for every possible resource configuration before outputting the optimal configuration to the scheduler, the critical path incurs some overhead during the prediction process. The average overhead per function type can be seen in \ref{fig:cass_aquatope_overhead} and \ref{fig:cass_parrotfish_overhead}. The overhead is trivial compared to the actual durations of the functions invoked for this study and likely does not have a significant impact on the number of SLO violations. However, this overhead can still be reduced in future works by incorporating multithreading in the inference process. 
+
+\begin{figure}[H] % Note the use of figure* instead of figure
+   \centering
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width to fit across two columns
+         \centering
+         \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/model_analysis/prediction_overhead/cass_aquatope.png}
+         \caption{Prediction overhead for CASS\_Aquatope}
+         \label{fig:cass_aquatope_overhead}
+   \end{subfigure}
+   \begin{subfigure}[b]{0.5\textwidth} % Adjusted width
+         \centering
+         \includegraphics[width=0.6\linewidth]{imgs/final_experiment_plots/model_analysis/prediction_overhead/cass_parrotfish.png}
+         \caption{Prediction overhead for CASS\_Parrotfish}
+         \label{fig:cass_parrotfish_overhead}
+   \end{subfigure}
+   \end{figure}
+
+
 \section{Discussion}
+\textbf{EnergyLiteDaemon} As discussed briefly, EnergyLiteDaemon was not effective in collecting energy measurements for a large number of containers running simultaneously. Though Energat provides more accurate, realistic results, it introduces high overhead and resource contention, which may not be scalable as the the RPS increases significantly. Future works would involve an improved energy collection method, which includes using C++ instead of Python and using an EnergyLiteDaemon process for a fixed number of containers, and adding new EnergyLiteDaemon processes for more containers. 
+
+\textbf{Model Improvement.} Our model currently works well for improving energy consumption of functions such as Float Matrix Multiplication and Linpack, which have more straightforward correlations between resource configurations and energy usage. Future works would entail improving the model to be able to capture more complex relationships, which would improve the predictions for Image Process, Video Process, and Encrypt. Some ways to improve the model would be to refine the way the model handles predictions with low confidence; rather than defaulting to a random configuration if the best configuration has low confidence, we can assess the next best configuration as well. We can also perform a deeper analysis of the input features that have the biggest impact on the predictions made by the model and introduce some type of feature extraction or feature engineering to construct more informative inputs. 
+
+\textbf{Practicality of End-to-End System} In our system currently, each invoker runs at a specific frequency, and invocations are sent to the invoker running at the frequency predicted by the model. This approach is not as practical if the number of invocations is scaled up significantly and invocations get routed to the same invokers repeatedly and cause increased traffic, which could occur due to temporal locality, which is when similar invocations are likely to occur multiple times. Instead, we can dynamically scale frequency by  by pinning containers to cores running at certain frequencies, where multiple cores may run at multiple frequencies on a single machine. This can also help prevent underutilization of resources and improve SLO attainment.
+
+Additionally, currently, the EnergyModel sequentially makes inferences for all CPU and frequency configurations, which introduces an overhead of up to 35ms on average. To alleviate this overhead, we can multithreaded the inference process on the controller side, which is an optimization that can reduce the overall latency of the critical path of the function invocation. 
 
 \section{Conclusion}
+
+In this paper, we introduce CASS, a Carbon Aware Serverless system that aims to minimize the carbon footprint of function invocations while continuing to meet service-level objectives. Throughout this work, we explore tools to collect energy measurements on a process-level, run a measurement study on different functions with various resource configurations to understand underlying patterns, and build an end-to-end system consisting of a Gaussian Process Regressor to predict the optimal resource configuration that minimizes energy and an Energy-Aware scheduler that routes the invocation to the correct invoker. Our evaluation shows that for functions with clear correlation between function inputs, resources, and energy expended, we can reduce the energy consumption by almost 50\% compared to existing baselines, while have comparable performance in terms of meeting SLO requirements. 
+
 
 % \section{Conclusion}
 
@@ -416,132 +454,67 @@ A toy example of the energy measurement of a container using EnergAt and EnergyL
    \label{fig:energy_toy_example}
 \end{figure*}
 
+
+
 \subsection{Energy Variation with vCPU and Frequency Allocation}
 \label{appendix:energy_variation_vcpu_frequency}
-The energy usage, duration, and CPU usage for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation are shown in Figure \ref{fig:cpu_stats}. 
+The energy usage and duration Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation and frequency are shown in Figure \ref{fig:energy_duration_heatmaps}. 
 
-The energy usage and duration for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU frequency are shown in Figure \ref{fig:freq_stats}. 
+The maximum CPU usage for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU count are shown in Figure \ref{fig:max_cpu}. 
+
 \begin{figure*}[ht]
    \centering
    % First row of plots
-   \textbf{Float Matrix Multiplication}\par\medskip
-   \begin{subfigure}[b]{0.3\textwidth}
-     \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/floatmatmul/CPU_Energy.png}
-     \caption{}
-     \label{fig:plot1}
+   % \textbf{Spin Up Stage}\par\medskip
+   \begin{subfigure}[b]{0.33\textwidth}
+     \includegraphics[width=\textwidth]{imgs/study_1_results/heatmaps/energy_encrypt.png}
+     \caption{Encrypt}
+     \label{fig:energy_encrypt}
    \end{subfigure}
    \hfill
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/floatmatmul/CPU_Duration.png}
-     \caption{}
-     \label{fig:plot2}
+   \begin{subfigure}[b]{0.33\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/heatmaps/energy_floatmatmult.png}
+     \caption{Float Matrix Multiplication}
+     \label{fig:energy_floatmatmult}
    \end{subfigure}
    \hfill
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/floatmatmul/CPU_CPUUsage.png}
-     \caption{}
-     \label{fig:plot3}
+   \begin{subfigure}[b]{0.33\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/heatmaps/energy_image.png}
+     \caption{Image Processing}
+     \label{fig:energy_image}
    \end{subfigure}
-   % \caption*{Float Matrix Multiplication}
-   
-   % Second row of plots
-   \textbf{Image Process}\par\medskip
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/imageprocess/CPU_Energy.png}
-     \caption{}
-     \label{fig:plot4}
-   \end{subfigure}
-   \hfill
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/imageprocess/CPU_Duration.png}
-     \caption{}
-     \label{fig:plot5}
-   \end{subfigure}
-   \hfill
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/imageprocess/CPU_CPUUsage.png}
-     \caption{}
-     \label{fig:plot6}
-   \end{subfigure}
-   % \caption*{Image Process}
-   
-   % Third row of plots
-   \textbf{Encryption}\par\medskip
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/encryption/CPU_Energy.png}
-     \caption{}
-     \label{fig:plot7}
-   \end{subfigure}
-   \hfill
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/encryption/CPU_Duration.png}
-     \caption{}
-     \label{fig:plot8}
-   \end{subfigure}
-   \hfill
-   \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/encryption/CPU_CPUUsage.png}
-     \caption{}
-     \label{fig:plot9}
-   \end{subfigure}
-   % \caption*{Encryption}
-   
-   \caption{Energy Usage (a), Duration (b), and CPU Usage (c) for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU allocation. Frequency was fixed at 2.4 GHz.}
-   \label{fig:cpu_stats}
- \end{figure*}
- 
+   \caption{Heatmaps for energy (top plot) and duration (bottom plot) as a function of vCPU frequency (x-axis) and vCPU count (y-axis)}
+   \label{fig:energy_duration_heatmaps} % Move this line inside the figure environment
+\end{figure*}
 
- \begin{figure*}[ht]
+\begin{figure*}[ht]
    \centering
    % First row of plots
-   \textbf{Float Matrix Multiplication}\par\medskip
-   \begin{subfigure}[b]{0.45\textwidth}
-     \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/floatmatmul/Freq_Energy.png}
-     \caption{}
-     \label{fig:plot10}
+   % \textbf{Spin Up Stage}\par\medskip
+   \begin{subfigure}[b]{0.33\textwidth}
+     \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/encryption/CPU_CPUUsage.png}
+     \caption{Encrypt}
+     \label{fig:encrypt_max_cpu}
    \end{subfigure}
    \hfill
-   \begin{subfigure}[b]{0.45\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/floatmatmul/Freq_Duration.png}
-     \caption{}
-     \label{fig:plot11}
-   \end{subfigure}
-   % \caption*{Float Matrix Multiplication}
-   
-   % Second row of plots
-   \textbf{Image Process}\par\medskip
-   \begin{subfigure}[b]{0.45\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/imageprocess/Freq_Energy.png}
-     \caption{}
-     \label{fig:plot12}
+   \begin{subfigure}[b]{0.33\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/floatmatmul/CPU_CPUUsage.png}
+     \caption{Float Matrix Multiplication}
+     \label{fig:floatmatmult_max_cpu}
    \end{subfigure}
    \hfill
-   \begin{subfigure}[b]{0.45\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/imageprocess/Freq_Duration.png}
-     \caption{}
-     \label{fig:plot13}
+   \begin{subfigure}[b]{0.33\textwidth}
+      \includegraphics[width=\textwidth]{imgs/study_1_results/var_cpu/imageprocess/CPU_CPUUsage.png}
+     \caption{Image Processing}
+     \label{fig:image_max_cpu}
    \end{subfigure}
-   % \caption*{Image Process}
-   
-   % Third row of plots
-   \textbf{Encryption}\par\medskip
-   \begin{subfigure}[b]{0.45\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/encryption/Freq_Energy.png}
-     \caption{}
-     \label{fig:plot14}
-   \end{subfigure}
-   \hfill
-   \begin{subfigure}[b]{0.45\textwidth}
-      \includegraphics[width=\textwidth]{imgs/study_1_results/var_freq/encryption/Freq_Duration.png}
-     \caption{}
-     \label{fig:plot15}
-   \end{subfigure}
-   % \caption*{Encryption}
-   
-   \caption{Energy Usage (a), Duration (b), and CPU Usage (c) for Float Matrix Multiplication, Image Processing, and Encryption as a function of vCPU frequency. vCPU allocation was fixed at 1.}
-   \label{fig:freq_stats}
- \end{figure*}
- 
+   \caption{Max CPU usage as a function of vCPU count}
+   \label{fig:max_cpu} % Move this line inside the figure environment
+\end{figure*}
+
+
+
+
  \subsection{Energy Variation for Different Stages of a Serverless Function Invocation}
  \label{appendix:energy_variation_vcpu_memory}
  We can see here the energy consumption of the container spin-up, idle time, and container spin-down for different image sizes in Figure \ref{fig:energy_stages}. 
@@ -614,8 +587,211 @@ The energy usage and duration for Float Matrix Multiplication, Image Processing,
    \caption{Energy Usage vs CPU (a, d, g), Memory (b, e, h), and Image Size (c, f, i) for the Spin Up, Spin Down, and Idle stages of a serverless function invocation.}
    \label{fig:energy_stages}
  \end{figure*}
+
+
+ 
  \subsection{Evaluation of the Performance of Gaussian Process Regression Model on Measurement Study Data }
  \label{appendix:regression_model_measurement_study}
+
+ For each function type and a few fixed input, we can see the energy per invocation over time, along with the difference between the predicted energy and the actual energy of the output configuration, and the difference between the actual energy of the output configuration and the ground truth minimum n Figure \ref{fig:model_performance_measurement_study}
+
+
+\begin{figure*}[ht]
+   \centering
+   % First row of plots
+   \textbf{Float Matrix Multiplication}\par\medskip
+   \begin{subfigure}[b]{0.22\textwidth}
+     \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/matmult_energy.png}
+     \caption{}
+     \label{fig:matmultenergy}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/matmult_energy_diff.png}
+     \caption{}
+     \label{fig:matmult_energy_diff}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/matmult_compare_min.png}
+     \caption{}
+     \label{fig:matmult_comparemin}
+   \end{subfigure}
+   
+   % Second row of plots
+   \textbf{Linpack}\par\medskip
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/linpack_energy.png}
+     \caption{}
+     \label{fig:linpack_energy}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/linpack_energy_diff.png}
+     \caption{}
+     \label{fig:linpack_energy_diff}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/linpack_compare_min.png}
+     \caption{}
+     \label{fig:linpack_compare_min}
+   \end{subfigure}
+   
+   % Third row of plots
+   \textbf{Encrypt}\par\medskip
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/encrypt_energy.png}
+     \caption{}
+     \label{fig:encrypt_energy}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/encrypt_energy_diff.png}
+     \caption{}
+     \label{fig:encrypt_energy_diff}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/encrypt_compare_min.png}
+     \caption{}
+     \label{fig:encrypt_compare_min}
+   \end{subfigure}
+   
+   % Fourth row of plots
+   \textbf{Image Processing}\par\medskip
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/image_energy.png}
+     \caption{}
+     \label{fig:image_energy}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/image_energy_diff.png}
+     \caption{}
+     \label{fig:image_energy_diff}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/image_compare_min.png}
+     \caption{}
+     \label{fig:image_compare_min}
+   \end{subfigure}
+
+   % Fifth row of plots
+   \textbf{Video Processing}\par\medskip
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/video_energy.png}
+     \caption{}
+     \label{fig:video_energy}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/video_energy_diff.png}
+     \caption{}
+     \label{fig:video_energy_diff}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.22\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/model_analysis/measurement_data_analysis/video_compare_min.png}
+     \caption{}
+     \label{fig:video_compare_min}
+   \end{subfigure}
+   
+   \caption{For each function type: 1) Energy of a function invocation over time 2) Difference predicted energy and actual energy for predicted configuration for invocation over time 3) Difference between energy of predicted configuration and ground truth minimum energy for invocation over time}
+   \label{fig:model_performance_measurement_study}
+ \end{figure*}
+
+
+  
+ \subsection{Evaluation of the End-to-End System on an Azure Trace}
+ \label{appendix:end-to-end_analysis}
+
+ Figure \ref{fig:end_to_end_per_invocation} shows the energy difference per invocation of a function type between CASS and the two baselines. 
+
+ \begin{figure*}[ht]
+   \centering
+   % First row of plots
+   \textbf{Float Matrix Multiplication}\par\medskip
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/floatmatmult.png}
+     \caption{}
+     \label{fig:matmult_energy_diff_parrotfish}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/aquatope/floatmatmult.png}
+     \caption{}
+     \label{fig:matmult_energy_diff_aquatope}
+   \end{subfigure}
+   
+   Second row of plots
+   \textbf{Linpack}\par\medskip
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/linpack.png}
+     \caption{}
+     \label{fig:linpack_energy_diff_parrotfish}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/aquatope/linpack.png}
+     \caption{}
+     \label{fig:linpack_energy_diff_aquatope}
+   \end{subfigure}
+   
+   % Third row of plots
+   \textbf{Encrypt}\par\medskip
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/encrypt.png}
+     \caption{}
+     \label{fig:encrypt_energy_diff_parrotfish}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/aquatope/encrypt.png}
+     \caption{}
+     \label{fig:encrypt_energy_diff_aquatope}
+   \end{subfigure}
+   
+   % \caption{For different function types, we show the energy difference per invocation between CASS and 1) Parrotfish and 2) Aquatope}
+   \label{fig:end_to_end_per_invocation_}
+ \end{figure*}
+
+\begin{figure*}[ht]
+   \centering
+   \newpage
+   \newpage
+   % Fourth row of plots
+   \textbf{Image Processing}\par\medskip
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/imageprocess.png}
+     \caption{}
+     \label{fig:image_energy_diff_parrotfish}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}[b]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/aquatope/imageprocess.png}
+     \caption{}
+     \label{fig:image_energy_diff_aquatope}
+   \end{subfigure}
+
+   Fifth row of plots
+   \textbf{Video Processing}\par\medskip
+   \begin{subfigure}{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/parrotfish/videoprocess.png}
+     \caption{}
+     \label{fig:video_energy_diff_parrotfish}
+   \end{subfigure}
+   \hfill
+   \begin{subfigure}{0.4\textwidth}
+      \includegraphics[width=\textwidth]{imgs/final_experiment_plots/energy_comparison/aquatope/videoprocess.png}
+     \caption{}
+     \label{fig:video_energy_diff_aquatope}
+   \end{subfigure}
+   \caption{For different function types, we show the energy difference per invocation between CASS and 1) Parrotfish and 2) Aquatope}
+   \label{fig:end_to_end_per_invocation}
+   
+\end{figure*}
 
 
 \end{document}
